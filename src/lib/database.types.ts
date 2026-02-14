@@ -211,7 +211,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_items_to_list: {
+        Args: {
+          p_list_id: string
+          p_items: Json
+        }
+        Returns: undefined
+      }
+      create_list_with_member: {
+        Args: {
+          list_name: string
+        }
+        Returns: string
+      }
+      get_shared_recipe: {
+        Args: {
+          p_token: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

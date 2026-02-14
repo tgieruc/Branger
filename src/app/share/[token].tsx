@@ -21,16 +21,17 @@ export default function SharedRecipeScreen() {
   const fetchSharedRecipe = async () => {
     const { data, error } = await supabase.rpc('get_shared_recipe', { p_token: token });
 
-    if (error || !data) {
+    if (error || !data || typeof data !== 'object' || Array.isArray(data)) {
       setLoading(false);
       return;
     }
 
+    const d = data as Record<string, any>;
     setRecipe({
-      ...data,
-      ingredients: data.ingredients ?? [],
-      steps: data.steps ?? [],
-    });
+      ...d,
+      ingredients: d.ingredients ?? [],
+      steps: d.steps ?? [],
+    } as RecipeWithDetails);
     setLoading(false);
   };
 
