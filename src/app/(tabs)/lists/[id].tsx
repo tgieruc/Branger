@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import type { ShoppingList, ListItem, ListMember } from '@/lib/types';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 export default function ListDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -20,6 +21,8 @@ export default function ListDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [newItemName, setNewItemName] = useState('');
   const [newItemDesc, setNewItemDesc] = useState('');
+  const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
+  const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
   const keyboardHeight = useKeyboardHeight();
 
   const fetchData = async () => {
@@ -61,17 +64,14 @@ export default function ListDetailScreen() {
       .eq('id', item.id);
   };
 
-  const deleteItem = async (itemId: string) => {
-    Alert.alert('Delete Item', 'Remove this item from the list?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          await supabase.from('list_items').delete().eq('id', itemId);
-        },
-      },
-    ]);
+  const deleteItem = (itemId: string) => {
+    setDeleteItemId(itemId);
+  };
+
+  const confirmDeleteItem = async () => {
+    if (!deleteItemId) return;
+    await supabase.from('list_items').delete().eq('id', deleteItemId);
+    setDeleteItemId(null);
   };
 
   const addItem = async () => {
@@ -91,27 +91,17 @@ export default function ListDetailScreen() {
   };
 
   const handleLeave = () => {
-    Alert.alert(
-      'Leave List',
-      members.length === 1
-        ? 'You are the last member. The list will be deleted.'
-        : 'Are you sure you want to leave this list?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Leave',
-          style: 'destructive',
-          onPress: async () => {
-            await supabase
-              .from('list_members')
-              .delete()
-              .eq('list_id', id)
-              .eq('user_id', user!.id);
-            router.back();
-          },
-        },
-      ]
-    );
+    setLeaveConfirmVisible(true);
+  };
+
+  const confirmLeave = async () => {
+    setLeaveConfirmVisible(false);
+    await supabase
+      .from('list_members')
+      .delete()
+      .eq('list_id', id)
+      .eq('user_id', user!.id);
+    router.back();
   };
 
   const handleShareList = async () => {
@@ -223,6 +213,27 @@ export default function ListDetailScreen() {
           <Ionicons name="add-circle" size={36} color="#007AFF" />
         </TouchableOpacity>
       </View>
+
+      <ConfirmDialog
+        visible={deleteItemId !== null}
+        title="Delete Item"
+        message="Remove this item from the list?"
+        onConfirm={confirmDeleteItem}
+        onCancel={() => setDeleteItemId(null)}
+      />
+
+      <ConfirmDialog
+        visible={leaveConfirmVisible}
+        title="Leave List"
+        message={
+          members.length === 1
+            ? 'You are the last member. The list will be deleted.'
+            : 'Are you sure you want to leave this list?'
+        }
+        confirmLabel="Leave"
+        onConfirm={confirmLeave}
+        onCancel={() => setLeaveConfirmVisible(false)}
+      />
     </View>
   );
 }

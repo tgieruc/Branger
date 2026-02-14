@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import type { RecipeWithDetails } from '@/lib/types';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 type ListOption = { id: string; name: string };
 
@@ -29,6 +30,7 @@ export default function RecipeDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [listPickerVisible, setListPickerVisible] = useState(false);
   const [availableLists, setAvailableLists] = useState<ListOption[]>([]);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
 
   useEffect(() => {
     fetchRecipe();
@@ -67,17 +69,13 @@ export default function RecipeDetailScreen() {
   };
 
   const handleDelete = () => {
-    Alert.alert('Delete Recipe', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          await supabase.from('recipes').delete().eq('id', id!);
-          router.back();
-        },
-      },
-    ]);
+    setDeleteConfirmVisible(true);
+  };
+
+  const confirmDelete = async () => {
+    setDeleteConfirmVisible(false);
+    await supabase.from('recipes').delete().eq('id', id!);
+    router.back();
   };
 
   const handleShare = async () => {
@@ -239,6 +237,14 @@ export default function RecipeDetailScreen() {
           </View>
         </Pressable>
       </Modal>
+
+      <ConfirmDialog
+        visible={deleteConfirmVisible}
+        title="Delete Recipe"
+        message="Are you sure you want to delete this recipe?"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirmVisible(false)}
+      />
     </>
   );
 }
