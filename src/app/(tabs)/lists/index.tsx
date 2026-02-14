@@ -1,12 +1,13 @@
 import { useState, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, TextInput, ActivityIndicator,
-  KeyboardAvoidingView, Platform, RefreshControl,
+  RefreshControl,
 } from 'react-native';
 import { Link, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
+import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 
 type ListSummary = {
   id: string;
@@ -22,6 +23,7 @@ export default function ListsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
+  const keyboardHeight = useKeyboardHeight();
 
   const fetchLists = async () => {
     const { data: memberships } = await supabase
@@ -111,11 +113,7 @@ export default function ListsScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
-    >
+    <View style={styles.container}>
       <FlatList
         data={lists}
         keyExtractor={(item) => item.id}
@@ -143,7 +141,7 @@ export default function ListsScreen() {
       />
 
       {showCreate && (
-        <View style={styles.createRow}>
+        <View style={[styles.createRow, { marginBottom: keyboardHeight }]}>
           <TextInput
             style={styles.createInput}
             placeholder="List name"
@@ -159,12 +157,12 @@ export default function ListsScreen() {
       )}
 
       <TouchableOpacity
-        style={[styles.fab, showCreate && styles.fabShifted]}
+        style={[styles.fab, showCreate && styles.fabShifted, { bottom: 24 + keyboardHeight }]}
         onPress={() => setShowCreate(!showCreate)}
       >
         <Ionicons name={showCreate ? 'close' : 'add'} size={28} color="#fff" />
       </TouchableOpacity>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

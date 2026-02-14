@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert,
-  ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback,
+  ActivityIndicator, Platform, Keyboard, TouchableWithoutFeedback,
 } from 'react-native';
+import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,6 +39,7 @@ export default function CreateRecipeScreen() {
 
   // Track which mode created the recipe for source_type
   const [sourceMode, setSourceMode] = useState<Mode>('manual');
+  const keyboardHeight = useKeyboardHeight();
 
   const sourceTypeMap: Record<Mode, string> = {
     manual: 'manual',
@@ -200,15 +202,11 @@ export default function CreateRecipeScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
-    >
+    <View style={styles.flex}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
           style={styles.container}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, { paddingBottom: 48 + keyboardHeight }]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
         >
@@ -321,7 +319,7 @@ export default function CreateRecipeScreen() {
           )}
         </ScrollView>
       </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

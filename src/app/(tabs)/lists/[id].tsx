@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, ActivityIndicator,
-  KeyboardAvoidingView, Platform, Share,
+  Platform, Share,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import type { ShoppingList, ListItem, ListMember } from '@/lib/types';
+import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 
 export default function ListDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -19,6 +20,7 @@ export default function ListDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [newItemName, setNewItemName] = useState('');
   const [newItemDesc, setNewItemDesc] = useState('');
+  const keyboardHeight = useKeyboardHeight();
 
   const fetchData = async () => {
     const [listRes, itemsRes, membersRes] = await Promise.all([
@@ -149,11 +151,7 @@ export default function ListDetailScreen() {
   });
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
-    >
+    <View style={styles.container}>
       <Stack.Screen options={{ title: list?.name ?? 'List' }} />
       <View style={styles.header}>
         <Text style={styles.title}>{list?.name}</Text>
@@ -206,7 +204,7 @@ export default function ListDetailScreen() {
         )}
       />
 
-      <View style={styles.addRow}>
+      <View style={[styles.addRow, { marginBottom: keyboardHeight }]}>
         <TextInput
           style={[styles.addInput, { flex: 2 }]}
           placeholder="Item name"
@@ -225,7 +223,7 @@ export default function ListDetailScreen() {
           <Ionicons name="add-circle" size={36} color="#007AFF" />
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
