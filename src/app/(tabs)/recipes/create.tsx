@@ -97,12 +97,16 @@ export default function CreateRecipeScreen() {
       const ext = asset.uri.split('.').pop() || 'jpg';
       const fileName = `${user.id}/${Date.now()}.${ext}`;
 
-      const response = await fetch(asset.uri);
-      const blob = await response.blob();
+      const formData = new FormData();
+      formData.append('file', {
+        uri: asset.uri,
+        name: fileName.split('/').pop(),
+        type: asset.mimeType || 'image/jpeg',
+      } as any);
 
       const { error: uploadError } = await supabase.storage
         .from('recipe-photos')
-        .upload(fileName, blob, { contentType: asset.mimeType || 'image/jpeg' });
+        .upload(fileName, formData, { contentType: 'multipart/form-data' });
 
       if (uploadError) throw uploadError;
 
