@@ -1,9 +1,22 @@
 import { Tabs } from 'expo-router';
+import { TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '@/lib/auth';
 
 export default function TabLayout() {
+  const { signOut } = useAuth();
+
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: '#007AFF' }}>
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: '#007AFF',
+        headerRight: () => (
+          <TouchableOpacity onPress={signOut} style={{ marginRight: 16 }}>
+            <Ionicons name="log-out-outline" size={24} color="#007AFF" />
+          </TouchableOpacity>
+        ),
+      }}
+    >
       <Tabs.Screen
         name="recipes"
         options={{
