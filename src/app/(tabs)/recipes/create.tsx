@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert,
-  ActivityIndicator, Platform, Keyboard, TouchableWithoutFeedback,
+  ActivityIndicator,
 } from 'react-native';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import { useRouter } from 'expo-router';
@@ -213,7 +213,6 @@ export default function CreateRecipeScreen() {
 
   return (
     <View style={styles.flex}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
           style={styles.container}
           contentContainerStyle={[styles.content, { paddingBottom: 48 + keyboardHeight }]}
@@ -328,7 +327,6 @@ export default function CreateRecipeScreen() {
             </>
           )}
         </ScrollView>
-      </TouchableWithoutFeedback>
     </View>
   );
 }
