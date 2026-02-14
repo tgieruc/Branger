@@ -6,9 +6,18 @@
 
 **Architecture:** Expo (React Native) frontend with Expo Router for navigation, Supabase backend (Cloud for dev, self-hosted for prod) handling auth, database, storage, realtime, and edge functions. AI pipeline uses OpenAI for recipe structuring and Mistral for photo OCR.
 
-**Tech Stack:** Expo SDK 52+, TypeScript, Expo Router, Supabase JS v2, Supabase Edge Functions (Deno), OpenAI API, Mistral API
+**Tech Stack:** Expo SDK 55 (default template), TypeScript, Expo Router, Supabase JS v2, Supabase Edge Functions (Deno), OpenAI API, Mistral API
+
+**Supabase Project:** `https://jeboglcuuutpwymxcejn.supabase.co`
 
 **Design Doc:** `docs/plans/2026-02-14-recipe-shopping-app-design.md`
+
+**MCP Tools Available:**
+- `mcp__supabase__apply_migration` — apply SQL migrations directly to the Supabase project
+- `mcp__supabase__deploy_edge_function` — deploy Edge Functions directly
+- `mcp__supabase__execute_sql` — run SQL queries against the database
+- `mcp__supabase__generate_typescript_types` — generate TypeScript types from the DB schema
+- `mcp__expo-docs__*` — reference Expo documentation at any step
 
 ---
 
@@ -16,50 +25,73 @@
 
 ### Task 1: Scaffold Expo Project
 
+> **Note:** The Expo default template (SDK 55) already includes: expo-router, react-native-screens,
+> react-native-safe-area-context, react-native-gesture-handler, react-native-reanimated,
+> @expo/vector-icons, expo-image, expo-linking, expo-constants, expo-status-bar, and TypeScript.
+> The project uses `src/app/` as the routing directory (not `app/` at root).
+
 **Files:**
-- Create: `package.json`, `app.json`, `tsconfig.json`, `app/_layout.tsx`, `app/index.tsx`
+- Created by template: `package.json`, `app.json`, `tsconfig.json`, `src/app/_layout.tsx`, `src/app/index.tsx`
 
 **Step 1: Create Expo project**
 
 Run:
 ```bash
 cd /Users/tgieruc/Documents/branger
-npx create-expo-app@latest . --template blank-typescript
+npx create-expo-app@latest . --yes
 ```
 
-Expected: Expo project scaffolded with TypeScript template.
+Expected: Expo project scaffolded with the default template (includes Router + TypeScript).
+The template creates a `src/` directory with `app/`, `components/`, `constants/`, `hooks/`.
 
-**Step 2: Install core dependencies**
+**Step 2: Install additional dependencies (only what's NOT in the template)**
 
 Run:
 ```bash
-npx expo install @supabase/supabase-js react-native-url-polyfill @react-native-async-storage/async-storage
-npx expo install expo-router expo-linking expo-constants expo-status-bar
-npx expo install expo-image-picker expo-camera
-npm install react-native-safe-area-context react-native-screens react-native-gesture-handler
+npx expo install @supabase/supabase-js react-native-url-polyfill @react-native-async-storage/async-storage expo-image-picker
 ```
 
-**Step 3: Configure Expo Router in app.json**
+That's it — expo-router, react-native-screens, gesture-handler, safe-area-context, etc. are already included.
 
-Update `app.json` to include:
+**Step 3: Configure app.json**
+
+Update `app.json` — keep the template's base config but update name, slug, scheme, and add the image-picker plugin:
 ```json
 {
   "expo": {
     "name": "Branger",
     "slug": "branger",
     "scheme": "branger",
+    "orientation": "portrait",
     "web": {
       "bundler": "metro",
-      "output": "server"
+      "output": "static"
     },
-    "plugins": ["expo-router"]
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Branger to access your photos to import recipes.",
+          "cameraPermission": "Allow Branger to use your camera to photograph recipes."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }
 ```
 
-**Step 4: Create root layout**
+**Step 4: Clean up template files and create our structure**
 
-Create `app/_layout.tsx`:
+Delete the template's default screens and replace with our app structure:
+- Remove: `src/app/explore.tsx` (template example screen)
+- Keep: `src/app/_layout.tsx` (we'll modify it), `src/app/index.tsx`
+- The `src/components/`, `src/constants/`, `src/hooks/` directories from the template are useful — keep them.
+
+Create `src/app/_layout.tsx`:
 ```tsx
 import { Stack } from 'expo-router';
 
@@ -68,7 +100,7 @@ export default function RootLayout() {
 }
 ```
 
-Create `app/index.tsx`:
+Create `src/app/index.tsx`:
 ```tsx
 import { View, Text } from 'react-native';
 
@@ -90,63 +122,61 @@ Expected: App launches in Expo Go showing "Branger" text.
 
 ```bash
 git add -A
-git commit -m "feat: scaffold Expo project with TypeScript and Router"
+git commit -m "feat: scaffold Expo project with default template"
 ```
 
 ---
 
 ### Task 2: Set Up Supabase Project + CLI
 
-**Files:**
-- Create: `supabase/config.toml`, `.env.local`
+> **Note:** Supabase project already exists at `https://jeboglcuuutpwymxcejn.supabase.co`.
+> We have MCP tools (`mcp__supabase__apply_migration`, `mcp__supabase__deploy_edge_function`)
+> that can apply migrations and deploy functions directly — no CLI required for these operations.
+> The CLI is still useful for local development and `supabase gen types`.
 
-**Step 1: Install Supabase CLI**
+**Files:**
+- Create: `.env.local`
+- Optional: `supabase/config.toml` (only if using CLI for local dev)
+
+**Step 1: Install Supabase CLI (optional, for local dev and type generation)**
 
 Run:
 ```bash
 npm install supabase --save-dev
 ```
 
-**Step 2: Create Supabase cloud project**
-
-Go to https://supabase.com/dashboard and create a new project named "branger". Note the Project URL and anon key.
-
-**Step 3: Initialize Supabase locally**
-
-Run:
-```bash
-npx supabase init
-```
-
-Expected: Creates `supabase/` directory with `config.toml`.
-
-**Step 4: Link to cloud project**
-
-Run:
-```bash
-npx supabase link --project-ref <your-project-ref>
-```
-
-**Step 5: Create .env.local**
+**Step 2: Create .env.local with real project credentials**
 
 Create `.env.local`:
 ```
-EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+EXPO_PUBLIC_SUPABASE_URL=https://jeboglcuuutpwymxcejn.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImplYm9nbGN1dXV0cHd5bXhjZWpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwNjI1NjMsImV4cCI6MjA4NjYzODU2M30.wrPmwIsGAF7AaRa2nGbs2okHJYhaSk3J9rfbTb4Oh1A
 ```
 
 Add `.env.local` to `.gitignore`.
 
-**Step 6: Commit**
+**Step 3: (Optional) Initialize Supabase CLI and link**
+
+Run:
+```bash
+npx supabase init
+npx supabase link --project-ref jeboglcuuutpwymxcejn
+```
+
+**Step 4: Commit**
 
 ```bash
-git add supabase/ .gitignore
-git commit -m "feat: initialize Supabase CLI and link cloud project"
+git add .gitignore
+git commit -m "feat: configure Supabase project credentials"
 ```
 
 ---
 
 ### Task 3: Database Schema Migration
+
+> **MCP Shortcut:** Use `mcp__supabase__apply_migration` to apply this SQL directly to the
+> cloud project. No need for `supabase db push` if using MCP. The SQL should also be saved
+> locally as a migration file for version control and self-hosted deployment.
 
 **Files:**
 - Create: `supabase/migrations/20260214000000_initial_schema.sql`
@@ -506,16 +536,19 @@ create policy "Users can delete own recipe photos"
 
 **Step 2: Apply the migration**
 
-Run:
+Option A (MCP — preferred):
+Use `mcp__supabase__apply_migration` with name `initial_schema` and the SQL above.
+
+Option B (CLI):
 ```bash
 npx supabase db push
 ```
 
-Expected: Migration applied successfully.
+Expected: Migration applied successfully. All 6 tables created with RLS policies.
 
-**Step 3: Verify tables in Supabase dashboard**
+**Step 3: Verify tables**
 
-Open Supabase Dashboard → Table Editor. Confirm all 6 tables exist with correct columns.
+Use `mcp__supabase__list_tables` to confirm all tables exist, or check the Supabase Dashboard.
 
 **Step 4: Commit**
 
@@ -529,20 +562,23 @@ git commit -m "feat: add database schema with RLS policies"
 ### Task 4: TypeScript Types + Supabase Client
 
 **Files:**
-- Create: `lib/supabase.ts`, `lib/types.ts`
+- Create: `src/lib/supabase.ts`, `src/lib/types.ts`, `src/lib/database.types.ts`
 
 **Step 1: Generate Supabase types**
 
-Run:
+Option A (MCP — preferred):
+Use `mcp__supabase__generate_typescript_types` and save the output to `src/lib/database.types.ts`.
+
+Option B (CLI):
 ```bash
-npx supabase gen types typescript --linked > lib/database.types.ts
+npx supabase gen types typescript --linked > src/lib/database.types.ts
 ```
 
 **Step 2: Create app-level types**
 
-Create `lib/types.ts`:
+Create `src/lib/types.ts`:
 ```ts
-import type { Database } from './database.types';
+import type { Database } from '@/lib/database.types';
 
 // Row types from Supabase
 type Tables = Database['public']['Tables'];
@@ -580,12 +616,12 @@ export type AIRecipeResult = {
 
 **Step 3: Create Supabase client**
 
-Create `lib/supabase.ts`:
+Create `src/lib/supabase.ts`:
 ```ts
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from './database.types';
+import type { Database } from '@/lib/database.types';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
@@ -603,7 +639,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 **Step 4: Commit**
 
 ```bash
-git add lib/
+git add src/lib/
 git commit -m "feat: add Supabase client and TypeScript types"
 ```
 
@@ -614,15 +650,15 @@ git commit -m "feat: add Supabase client and TypeScript types"
 ### Task 5: Auth Context Provider
 
 **Files:**
-- Create: `lib/auth.tsx`
+- Create: `src/lib/auth.tsx`
 
 **Step 1: Create the auth context**
 
-Create `lib/auth.tsx`:
+Create `src/lib/auth.tsx`:
 ```tsx
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import { supabase } from './supabase';
+import { supabase } from '@/lib/supabase';
 
 type AuthContextType = {
   session: Session | null;
@@ -687,7 +723,7 @@ export function useAuth() {
 **Step 2: Commit**
 
 ```bash
-git add lib/auth.tsx
+git add src/lib/auth.tsx
 git commit -m "feat: add auth context provider with sign up/in/out"
 ```
 
@@ -696,12 +732,12 @@ git commit -m "feat: add auth context provider with sign up/in/out"
 ### Task 6: Auth Screens + Root Layout with Auth Guard
 
 **Files:**
-- Modify: `app/_layout.tsx`
-- Create: `app/login.tsx`, `app/register.tsx`, `app/(tabs)/_layout.tsx`, `app/(tabs)/recipes/index.tsx`, `app/(tabs)/lists/index.tsx`
+- Modify: `src/app/_layout.tsx`
+- Create: `src/app/login.tsx`, `src/app/register.tsx`, `src/app/(tabs)/_layout.tsx`, `src/app/(tabs)/recipes/index.tsx`, `src/app/(tabs)/lists/index.tsx`
 
 **Step 1: Update root layout with auth guard**
 
-Replace `app/_layout.tsx`:
+Replace `src/app/_layout.tsx`:
 ```tsx
 import { useEffect } from 'react';
 import { Slot, useRouter, useSegments } from 'expo-router';
@@ -742,14 +778,14 @@ export default function RootLayout() {
 
 **Step 2: Create login screen**
 
-Create `app/login.tsx`:
+Create `src/app/login.tsx`:
 ```tsx
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Link } from 'expo-router';
-import { useAuth } from '../lib/auth';
+import { useAuth } from '@/lib/auth';
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
@@ -812,14 +848,14 @@ const styles = StyleSheet.create({
 
 **Step 3: Create register screen**
 
-Create `app/register.tsx`:
+Create `src/app/register.tsx`:
 ```tsx
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Link } from 'expo-router';
-import { useAuth } from '../lib/auth';
+import { useAuth } from '@/lib/auth';
 
 export default function RegisterScreen() {
   const { signUp } = useAuth();
@@ -898,7 +934,7 @@ const styles = StyleSheet.create({
 
 **Step 4: Create tab layout**
 
-Create `app/(tabs)/_layout.tsx`:
+Create `src/app/(tabs)/_layout.tsx`:
 ```tsx
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -933,7 +969,7 @@ export default function TabLayout() {
 
 **Step 5: Create placeholder tab screens**
 
-Create `app/(tabs)/recipes/_layout.tsx`:
+Create `src/app/(tabs)/recipes/_layout.tsx`:
 ```tsx
 import { Stack } from 'expo-router';
 
@@ -942,7 +978,7 @@ export default function RecipesLayout() {
 }
 ```
 
-Create `app/(tabs)/recipes/index.tsx`:
+Create `src/app/(tabs)/recipes/index.tsx`:
 ```tsx
 import { View, Text, StyleSheet } from 'react-native';
 
@@ -959,7 +995,7 @@ const styles = StyleSheet.create({
 });
 ```
 
-Create `app/(tabs)/lists/_layout.tsx`:
+Create `src/app/(tabs)/lists/_layout.tsx`:
 ```tsx
 import { Stack } from 'expo-router';
 
@@ -968,7 +1004,7 @@ export default function ListsLayout() {
 }
 ```
 
-Create `app/(tabs)/lists/index.tsx`:
+Create `src/app/(tabs)/lists/index.tsx`:
 ```tsx
 import { View, Text, StyleSheet } from 'react-native';
 
@@ -997,7 +1033,7 @@ Expected: App shows login screen. After registering + logging in, redirects to t
 **Step 8: Commit**
 
 ```bash
-git add app/ lib/
+git add src/app/ src/lib/
 git commit -m "feat: add auth screens and tab navigation with auth guard"
 ```
 
@@ -1008,16 +1044,16 @@ git commit -m "feat: add auth screens and tab navigation with auth guard"
 ### Task 7: Recipe List Screen
 
 **Files:**
-- Modify: `app/(tabs)/recipes/index.tsx`
-- Create: `components/RecipeCard.tsx`
+- Modify: `src/app/(tabs)/recipes/index.tsx`
+- Create: `src/components/RecipeCard.tsx`
 
 **Step 1: Create RecipeCard component**
 
-Create `components/RecipeCard.tsx`:
+Create `src/components/RecipeCard.tsx`:
 ```tsx
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Link } from 'expo-router';
-import type { Recipe } from '../lib/types';
+import type { Recipe } from '@/lib/types';
 
 export function RecipeCard({ recipe }: { recipe: Recipe }) {
   return (
@@ -1053,7 +1089,7 @@ const styles = StyleSheet.create({
 
 **Step 2: Implement recipe list screen with data fetching**
 
-Replace `app/(tabs)/recipes/index.tsx`:
+Replace `src/app/(tabs)/recipes/index.tsx`:
 ```tsx
 import { useEffect, useState, useCallback } from 'react';
 import {
@@ -1061,9 +1097,9 @@ import {
 } from 'react-native';
 import { Link, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../../../lib/supabase';
-import { RecipeCard } from '../../../components/RecipeCard';
-import type { Recipe } from '../../../lib/types';
+import { supabase } from '@/lib/supabase';
+import { RecipeCard } from '@/components/RecipeCard';
+import type { Recipe } from '@/lib/types';
 
 export default function RecipesScreen() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -1128,7 +1164,7 @@ const styles = StyleSheet.create({
 **Step 3: Commit**
 
 ```bash
-git add app/(tabs)/recipes/index.tsx components/RecipeCard.tsx
+git add src/app/(tabs)/recipes/index.tsx src/components/RecipeCard.tsx
 git commit -m "feat: add recipe list screen with FAB"
 ```
 
@@ -1137,11 +1173,11 @@ git commit -m "feat: add recipe list screen with FAB"
 ### Task 8: Manual Recipe Creation Screen
 
 **Files:**
-- Create: `app/(tabs)/recipes/create.tsx`
+- Create: `src/app/(tabs)/recipes/create.tsx`
 
 **Step 1: Create manual recipe form**
 
-Create `app/(tabs)/recipes/create.tsx`:
+Create `src/app/(tabs)/recipes/create.tsx`:
 ```tsx
 import { useState } from 'react';
 import {
@@ -1149,8 +1185,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../../../lib/supabase';
-import { useAuth } from '../../../lib/auth';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth';
 
 type Ingredient = { name: string; description: string };
 type Step = { instruction: string };
@@ -1329,7 +1365,7 @@ Expected: Navigate to create screen, fill form, save. Recipe appears in list.
 **Step 3: Commit**
 
 ```bash
-git add app/(tabs)/recipes/create.tsx
+git add src/app/(tabs)/recipes/create.tsx
 git commit -m "feat: add manual recipe creation screen"
 ```
 
@@ -1338,11 +1374,11 @@ git commit -m "feat: add manual recipe creation screen"
 ### Task 9: Recipe Detail Screen
 
 **Files:**
-- Create: `app/(tabs)/recipes/[id].tsx`
+- Create: `src/app/(tabs)/recipes/[id].tsx`
 
 **Step 1: Create recipe detail screen**
 
-Create `app/(tabs)/recipes/[id].tsx`:
+Create `src/app/(tabs)/recipes/[id].tsx`:
 ```tsx
 import { useEffect, useState } from 'react';
 import {
@@ -1350,9 +1386,9 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../../../lib/supabase';
-import { useAuth } from '../../../lib/auth';
-import type { RecipeWithDetails } from '../../../lib/types';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth';
+import type { RecipeWithDetails } from '@/lib/types';
 
 export default function RecipeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -1558,7 +1594,7 @@ Expected: Tap a recipe card → navigates to detail screen with ingredients and 
 **Step 3: Commit**
 
 ```bash
-git add app/(tabs)/recipes/[id].tsx
+git add "src/app/(tabs)/recipes/[id].tsx"
 git commit -m "feat: add recipe detail screen with share, delete, add-to-list"
 ```
 
@@ -1569,11 +1605,11 @@ git commit -m "feat: add recipe detail screen with share, delete, add-to-list"
 ### Task 10: Shopping Lists Screen
 
 **Files:**
-- Modify: `app/(tabs)/lists/index.tsx`
+- Modify: `src/app/(tabs)/lists/index.tsx`
 
 **Step 1: Implement lists screen**
 
-Replace `app/(tabs)/lists/index.tsx`:
+Replace `src/app/(tabs)/lists/index.tsx`:
 ```tsx
 import { useState, useCallback } from 'react';
 import {
@@ -1581,8 +1617,8 @@ import {
 } from 'react-native';
 import { Link, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../../../lib/supabase';
-import { useAuth } from '../../../lib/auth';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth';
 
 type ListSummary = {
   id: string;
@@ -1769,7 +1805,7 @@ const styles = StyleSheet.create({
 **Step 2: Commit**
 
 ```bash
-git add app/(tabs)/lists/index.tsx
+git add src/app/(tabs)/lists/index.tsx
 git commit -m "feat: add shopping lists screen with create"
 ```
 
@@ -1778,11 +1814,11 @@ git commit -m "feat: add shopping lists screen with create"
 ### Task 11: List Detail Screen (Checklist + Members)
 
 **Files:**
-- Create: `app/(tabs)/lists/[id].tsx`
+- Create: `src/app/(tabs)/lists/[id].tsx`
 
 **Step 1: Create list detail screen**
 
-Create `app/(tabs)/lists/[id].tsx`:
+Create `src/app/(tabs)/lists/[id].tsx`:
 ```tsx
 import { useEffect, useState, useCallback } from 'react';
 import {
@@ -1790,9 +1826,9 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../../../lib/supabase';
-import { useAuth } from '../../../lib/auth';
-import type { ShoppingList, ListItem, ListMember } from '../../../lib/types';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth';
+import type { ShoppingList, ListItem, ListMember } from '@/lib/types';
 
 export default function ListDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -2028,7 +2064,7 @@ Expected: Create a list, tap it, add items, check/uncheck, delete items via long
 **Step 3: Commit**
 
 ```bash
-git add app/(tabs)/lists/[id].tsx
+git add "src/app/(tabs)/lists/[id].tsx"
 git commit -m "feat: add list detail with checklist, realtime, and membership"
 ```
 
@@ -2139,6 +2175,7 @@ npx supabase secrets set OPENAI_API_KEY=sk-your-key-here
 Run:
 ```bash
 npx supabase functions deploy parse-recipe-text
+# Or use mcp__supabase__deploy_edge_function with the function code
 ```
 
 **Step 4: Commit**
@@ -2269,6 +2306,7 @@ Deno.serve(async (req) => {
 Run:
 ```bash
 npx supabase functions deploy parse-recipe-url
+# Or use mcp__supabase__deploy_edge_function with the function code
 ```
 
 **Step 3: Commit**
@@ -2415,6 +2453,7 @@ npx supabase secrets set MISTRAL_API_KEY=your-mistral-key
 Run:
 ```bash
 npx supabase functions deploy parse-recipe-photo
+# Or use mcp__supabase__deploy_edge_function with the function code
 ```
 
 **Step 4: Commit**
@@ -2429,15 +2468,15 @@ git commit -m "feat: add edge function for photo-to-recipe via Mistral OCR + Ope
 ### Task 15: Wire AI Modes into Recipe Creator
 
 **Files:**
-- Modify: `app/(tabs)/recipes/create.tsx`
-- Create: `lib/ai.ts`
+- Modify: `src/app/(tabs)/recipes/create.tsx`
+- Create: `src/lib/ai.ts`
 
 **Step 1: Create AI client helper**
 
-Create `lib/ai.ts`:
+Create `src/lib/ai.ts`:
 ```ts
-import { supabase } from './supabase';
-import type { AIRecipeResult } from './types';
+import { supabase } from '@/lib/supabase';
+import type { AIRecipeResult } from '@/lib/types';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 
@@ -2479,7 +2518,7 @@ export async function parseRecipeFromPhoto(imageUrl: string): Promise<AIRecipeRe
 
 **Step 2: Update create screen with AI modes**
 
-Replace `app/(tabs)/recipes/create.tsx` with a version that adds segmented mode selector (manual/text/url/photo) at the top.
+Replace `src/app/(tabs)/recipes/create.tsx` with a version that adds segmented mode selector (manual/text/url/photo) at the top.
 
 Key additions to the existing create screen:
 
@@ -2500,9 +2539,9 @@ import {
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../../../lib/supabase';
-import { useAuth } from '../../../lib/auth';
-import { parseRecipeFromText, parseRecipeFromUrl, parseRecipeFromPhoto } from '../../../lib/ai';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth';
+import { parseRecipeFromText, parseRecipeFromUrl, parseRecipeFromPhoto } from '@/lib/ai';
 
 type Ingredient = { name: string; description: string };
 type Step = { instruction: string };
@@ -2823,7 +2862,7 @@ Expected: Text mode generates recipe from pasted text. URL mode imports from a U
 **Step 4: Commit**
 
 ```bash
-git add lib/ai.ts app/(tabs)/recipes/create.tsx
+git add src/lib/ai.ts src/app/(tabs)/recipes/create.tsx
 git commit -m "feat: wire AI recipe creation (text, URL, photo) into create screen"
 ```
 
@@ -2834,20 +2873,20 @@ git commit -m "feat: wire AI recipe creation (text, URL, photo) into create scre
 ### Task 16: Shared Recipe Screen
 
 **Files:**
-- Create: `app/share/[token].tsx`
+- Create: `src/app/share/[token].tsx`
 
 **Step 1: Create shared recipe screen**
 
-Create `app/share/[token].tsx`:
+Create `src/app/share/[token].tsx`:
 ```tsx
 import { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../lib/auth';
-import type { RecipeWithDetails } from '../../lib/types';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth';
+import type { RecipeWithDetails } from '@/lib/types';
 
 export default function SharedRecipeScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
@@ -2995,7 +3034,7 @@ const styles = StyleSheet.create({
 **Step 3: Commit**
 
 ```bash
-git add app/share/
+git add src/app/share/
 git commit -m "feat: add shared recipe view with save-copy functionality"
 ```
 
@@ -3006,16 +3045,16 @@ git commit -m "feat: add shared recipe view with save-copy functionality"
 ### Task 17: Sign Out Button + Profile Header
 
 **Files:**
-- Modify: `app/(tabs)/_layout.tsx`
+- Modify: `src/app/(tabs)/_layout.tsx`
 
 **Step 1: Add sign-out to tab bar**
 
-Update `app/(tabs)/_layout.tsx` to add a sign-out button in the header:
+Update `src/app/(tabs)/_layout.tsx` to add a sign-out button in the header:
 ```tsx
 import { Tabs } from 'expo-router';
 import { TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../lib/auth';
+import { useAuth } from '@/lib/auth';
 
 export default function TabLayout() {
   const { signOut } = useAuth();
@@ -3059,7 +3098,7 @@ export default function TabLayout() {
 **Step 2: Commit**
 
 ```bash
-git add app/(tabs)/_layout.tsx
+git add src/app/(tabs)/_layout.tsx
 git commit -m "feat: add sign-out button to tab header"
 ```
 
