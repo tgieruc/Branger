@@ -1,6 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import * as jose from "jsr:@panva/jose@6";
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
+
+const SUPABASE_JWT_ISSUER = Deno.env.get("SUPABASE_URL")! + "/auth/v1";
+const SUPABASE_JWT_KEYS = jose.createRemoteJWKSet(
+  new URL(Deno.env.get("SUPABASE_URL")! + "/auth/v1/.well-known/jwks.json"),
+);
 
 const SYSTEM_PROMPT = `You are a recipe parser. Given free-form text about a recipe, extract it into a structured JSON format.
 
@@ -20,18 +26,38 @@ Rules:
 - If the text is unclear, make reasonable assumptions
 - Return ONLY the JSON, no markdown, no explanation`;
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-      },
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Auth is enforced by Supabase gateway (verify_jwt: true)
+    // Verify JWT using JWKS (Supabase recommended pattern for ES256)
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Missing authorization header" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    try {
+      const token = authHeader.replace("Bearer ", "");
+      await jose.jwtVerify(token, SUPABASE_JWT_KEYS, {
+        issuer: SUPABASE_JWT_ISSUER,
+      });
+    } catch (e) {
+      console.error("Auth failed:", e);
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
 
     const { text } = await req.json();
 
@@ -68,16 +94,13 @@ Deno.serve(async (req) => {
     const recipe = JSON.parse(data.choices[0].message.content);
 
     return new Response(JSON.stringify(recipe), {
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (error) {
-    console.error('Edge function error:', error);
-    return new Response(JSON.stringify({ error: 'Failed to parse recipe. Please try again.' }), {
+    console.error("Edge function error:", error);
+    return new Response(JSON.stringify({ error: "Failed to parse recipe. Please try again." }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
 });
