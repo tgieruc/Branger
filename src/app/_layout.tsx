@@ -11,10 +11,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     if (loading) return;
 
     const inAuthGroup = segments[0] === '(tabs)';
+    const inPublicRoute = segments[0] === 'share';
 
     if (!session && inAuthGroup) {
       router.replace('/login');
-    } else if (session && !inAuthGroup) {
+    } else if (session && !inAuthGroup && !inPublicRoute) {
       router.replace('/(tabs)/recipes');
     }
   }, [session, loading, segments]);

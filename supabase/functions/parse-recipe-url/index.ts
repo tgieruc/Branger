@@ -80,6 +80,11 @@ Deno.serve(async (req) => {
       }),
     });
 
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`OpenAI API error (${response.status}): ${errorBody}`);
+    }
+
     const data = await response.json();
     const recipe = JSON.parse(data.choices[0].message.content);
 

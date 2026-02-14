@@ -68,6 +68,11 @@ Deno.serve(async (req) => {
       }),
     });
 
+    if (!ocrResponse.ok) {
+      const errorBody = await ocrResponse.text();
+      throw new Error(`Mistral API error (${ocrResponse.status}): ${errorBody}`);
+    }
+
     const ocrData = await ocrResponse.json();
     const extractedText = ocrData.choices[0].message.content;
 
@@ -88,6 +93,11 @@ Deno.serve(async (req) => {
         response_format: { type: "json_object" },
       }),
     });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`OpenAI API error (${response.status}): ${errorBody}`);
+    }
 
     const data = await response.json();
     const recipe = JSON.parse(data.choices[0].message.content);
