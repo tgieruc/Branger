@@ -28,10 +28,12 @@ export default function ListsScreen() {
   const keyboardHeight = useKeyboardHeight();
 
   const fetchLists = async () => {
+    if (!user) { setLoading(false); return; }
+
     const { data: memberships } = await supabase
       .from('list_members')
       .select('list_id')
-      .eq('user_id', user!.id);
+      .eq('user_id', user.id);
 
     if (!memberships || memberships.length === 0) {
       setLists([]);
@@ -53,27 +55,26 @@ export default function ListsScreen() {
       return;
     }
 
-    // Get item counts for each list
-    const summaries: ListSummary[] = [];
-    for (const list of listsData) {
-      const { count: totalCount } = await supabase
-        .from('list_items')
-        .select('*', { count: 'exact', head: true })
-        .eq('list_id', list.id);
+    // Single query: get counts for all lists at once
+    const { data: allItems } = await supabase
+      .from('list_items')
+      .select('list_id, checked')
+      .in('list_id', listIds);
 
-      const { count: uncheckedCount } = await supabase
-        .from('list_items')
-        .select('*', { count: 'exact', head: true })
-        .eq('list_id', list.id)
-        .eq('checked', false);
-
-      summaries.push({
-        id: list.id,
-        name: list.name,
-        item_count: totalCount ?? 0,
-        unchecked_count: uncheckedCount ?? 0,
-      });
+    const countMap = new Map<string, { total: number; unchecked: number }>();
+    for (const item of allItems ?? []) {
+      const entry = countMap.get(item.list_id) ?? { total: 0, unchecked: 0 };
+      entry.total++;
+      if (!item.checked) entry.unchecked++;
+      countMap.set(item.list_id, entry);
     }
+
+    const summaries: ListSummary[] = listsData.map((list) => ({
+      id: list.id,
+      name: list.name,
+      item_count: countMap.get(list.id)?.total ?? 0,
+      unchecked_count: countMap.get(list.id)?.unchecked ?? 0,
+    }));
 
     setLists(summaries);
     setLoading(false);
@@ -107,12 +108,12 @@ export default function ListsScreen() {
   };
 
   const confirmDeleteList = async () => {
-    if (!deleteListId) return;
+    if (!deleteListId || !user) return;
     await supabase
       .from('list_members')
       .delete()
       .eq('list_id', deleteListId)
-      .eq('user_id', user!.id);
+      .eq('user_id', user.id);
     setDeleteListId(null);
     fetchLists();
   };

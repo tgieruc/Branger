@@ -57,11 +57,15 @@ export default function ListDetailScreen() {
   }, [id]);
 
   const toggleItem = async (item: ListItem) => {
+    const previousItems = items;
     setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, checked: !i.checked } : i));
-    await supabase
+    const { error } = await supabase
       .from('list_items')
       .update({ checked: !item.checked })
       .eq('id', item.id);
+    if (error) {
+      setItems(previousItems);
+    }
   };
 
   const deleteItem = (itemId: string) => {
@@ -70,9 +74,14 @@ export default function ListDetailScreen() {
 
   const confirmDeleteItem = async () => {
     if (!deleteItemId) return;
-    setItems((prev) => prev.filter((i) => i.id !== deleteItemId));
+    const previousItems = items;
+    const idToDelete = deleteItemId;
+    setItems((prev) => prev.filter((i) => i.id !== idToDelete));
     setDeleteItemId(null);
-    await supabase.from('list_items').delete().eq('id', deleteItemId);
+    const { error } = await supabase.from('list_items').delete().eq('id', idToDelete);
+    if (error) {
+      setItems(previousItems);
+    }
   };
 
   const addItem = async () => {
@@ -92,12 +101,13 @@ export default function ListDetailScreen() {
   };
 
   const confirmDeleteList = async () => {
+    if (!user) return;
     setDeleteListVisible(false);
     await supabase
       .from('list_members')
       .delete()
       .eq('list_id', id)
-      .eq('user_id', user!.id);
+      .eq('user_id', user.id);
     router.back();
   };
 
@@ -119,8 +129,12 @@ export default function ListDetailScreen() {
   const clearChecked = async () => {
     const checkedIds = items.filter((i) => i.checked).map((i) => i.id);
     if (checkedIds.length === 0) return;
+    const previousItems = items;
     setItems((prev) => prev.filter((i) => !i.checked));
-    await supabase.from('list_items').delete().in('id', checkedIds);
+    const { error } = await supabase.from('list_items').delete().in('id', checkedIds);
+    if (error) {
+      setItems(previousItems);
+    }
   };
 
   if (loading) {

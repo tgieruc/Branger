@@ -37,33 +37,21 @@ export default function RecipeDetailScreen() {
   }, [id]);
 
   const fetchRecipe = async () => {
-    const { data: recipeData } = await supabase
-      .from('recipes')
-      .select('*')
-      .eq('id', id!)
-      .single();
+    const [recipeRes, ingredientsRes, stepsRes] = await Promise.all([
+      supabase.from('recipes').select('*').eq('id', id!).single(),
+      supabase.from('recipe_ingredients').select('*').eq('recipe_id', id!).order('position'),
+      supabase.from('recipe_steps').select('*').eq('recipe_id', id!).order('step_number'),
+    ]);
 
-    if (!recipeData) {
+    if (!recipeRes.data) {
       setLoading(false);
       return;
     }
 
-    const { data: ingredients } = await supabase
-      .from('recipe_ingredients')
-      .select('*')
-      .eq('recipe_id', id!)
-      .order('position');
-
-    const { data: steps } = await supabase
-      .from('recipe_steps')
-      .select('*')
-      .eq('recipe_id', id!)
-      .order('step_number');
-
     setRecipe({
-      ...recipeData,
-      ingredients: ingredients ?? [],
-      steps: steps ?? [],
+      ...recipeRes.data,
+      ingredients: ingredientsRes.data ?? [],
+      steps: stepsRes.data ?? [],
     });
     setLoading(false);
   };
@@ -105,7 +93,7 @@ export default function RecipeDetailScreen() {
     const { data: memberships } = await supabase
       .from('list_members')
       .select('list_id, shopping_lists(id, name)')
-      .eq('user_id', user!.id);
+      .eq('user_id', user?.id ?? '');
 
     const lists = (memberships ?? [])
       .map((m: Record<string, unknown>) => m.shopping_lists as { id: string; name: string } | null)
@@ -127,29 +115,23 @@ export default function RecipeDetailScreen() {
     if (!recipe) return;
     setListPickerVisible(false);
 
-    const maxPos = await supabase
-      .from('list_items')
-      .select('position')
-      .eq('list_id', list.id)
-      .order('position', { ascending: false })
-      .limit(1)
-      .single();
+    const { error } = await supabase.rpc('add_items_to_list', {
+      p_list_id: list.id,
+      p_items: JSON.stringify(
+        recipe.ingredients.map((ing) => ({
+          name: ing.name,
+          description: ing.description || null,
+          recipe_id: recipe.id,
+        }))
+      ),
+    });
 
-    const startPos = (maxPos.data?.position ?? -1) + 1;
+    if (error) {
+      Alert.alert('Error', 'Failed to add ingredients to list.');
+      return;
+    }
 
-    await supabase.from('list_items').insert(
-      recipe.ingredients.map((ing, i) => ({
-        list_id: list.id,
-        name: ing.name,
-        description: ing.description || null,
-        recipe_id: recipe.id,
-        position: startPos + i,
-      })),
-    );
-    Alert.alert(
-      'Done',
-      `Added ${recipe.ingredients.length} items to ${list.name}`,
-    );
+    Alert.alert('Done', `Added ${recipe.ingredients.length} items to ${list.name}`);
   };
 
   if (loading) {

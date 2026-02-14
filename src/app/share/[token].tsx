@@ -19,23 +19,17 @@ export default function SharedRecipeScreen() {
   }, [token]);
 
   const fetchSharedRecipe = async () => {
-    const { data: recipeData } = await supabase
-      .from('recipes')
-      .select('*')
-      .eq('share_token', token)
-      .single();
+    const { data, error } = await supabase.rpc('get_shared_recipe', { p_token: token });
 
-    if (!recipeData) { setLoading(false); return; }
-
-    const [ingRes, stepsRes] = await Promise.all([
-      supabase.from('recipe_ingredients').select('*').eq('recipe_id', recipeData.id).order('position'),
-      supabase.from('recipe_steps').select('*').eq('recipe_id', recipeData.id).order('step_number'),
-    ]);
+    if (error || !data) {
+      setLoading(false);
+      return;
+    }
 
     setRecipe({
-      ...recipeData,
-      ingredients: ingRes.data ?? [],
-      steps: stepsRes.data ?? [],
+      ...data,
+      ingredients: data.ingredients ?? [],
+      steps: data.steps ?? [],
     });
     setLoading(false);
   };
@@ -63,24 +57,30 @@ export default function SharedRecipeScreen() {
     }
 
     if (recipe.ingredients.length > 0) {
-      await supabase.from('recipe_ingredients').insert(
-        recipe.ingredients.map((ing, i) => ({
+      const { error: ingError } = await supabase.from('recipe_ingredients').insert(
+        recipe.ingredients.map((ing: any, i: number) => ({
           recipe_id: newRecipe.id,
           name: ing.name,
           description: ing.description,
           position: i,
         }))
       );
+      if (ingError) {
+        Alert.alert('Warning', 'Recipe saved but some ingredients may be missing.');
+      }
     }
 
     if (recipe.steps.length > 0) {
-      await supabase.from('recipe_steps').insert(
-        recipe.steps.map((step, i) => ({
+      const { error: stepError } = await supabase.from('recipe_steps').insert(
+        recipe.steps.map((step: any, i: number) => ({
           recipe_id: newRecipe.id,
           step_number: i + 1,
           instruction: step.instruction,
         }))
       );
+      if (stepError) {
+        Alert.alert('Warning', 'Recipe saved but some steps may be missing.');
+      }
     }
 
     Alert.alert('Saved!', 'Recipe saved to your collection.', [

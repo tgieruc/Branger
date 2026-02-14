@@ -89,13 +89,13 @@ export default function CreateRecipeScreen() {
   };
 
   const processPhotoResult = async (result: ImagePicker.ImagePickerResult) => {
-    if (result.canceled || !result.assets[0]) return;
+    if (result.canceled || !result.assets[0] || !user) return;
 
     setAiLoading(true);
     try {
       const asset = result.assets[0];
       const ext = asset.uri.split('.').pop() || 'jpg';
-      const fileName = `${user!.id}/${Date.now()}.${ext}`;
+      const fileName = `${user.id}/${Date.now()}.${ext}`;
 
       const response = await fetch(asset.uri);
       const blob = await response.blob();
@@ -161,6 +161,7 @@ export default function CreateRecipeScreen() {
 
   const handleSave = async () => {
     if (!title.trim()) { Alert.alert('Error', 'Please enter a title'); return; }
+    if (!user) return;
     const validIngs = ingredients.filter((i) => i.name.trim());
     const validSteps = steps.filter((s) => s.instruction.trim());
     setSaving(true);
@@ -169,7 +170,7 @@ export default function CreateRecipeScreen() {
       .from('recipes')
       .insert({
         title: title.trim(),
-        user_id: user!.id,
+        user_id: user.id,
         source_type: sourceTypeMap[sourceMode],
         source_url: sourceMode === 'url' ? aiUrl : null,
       })
@@ -181,20 +182,29 @@ export default function CreateRecipeScreen() {
     }
 
     if (validIngs.length > 0) {
-      await supabase.from('recipe_ingredients').insert(
+      const { error: ingError } = await supabase.from('recipe_ingredients').insert(
         validIngs.map((ing, i) => ({
           recipe_id: recipe.id, name: ing.name.trim(),
           description: ing.description.trim(), position: i,
         }))
       );
+      if (ingError) {
+        Alert.alert('Warning', 'Recipe saved but some ingredients may be missing.');
+        setSaving(false);
+        router.back();
+        return;
+      }
     }
 
     if (validSteps.length > 0) {
-      await supabase.from('recipe_steps').insert(
+      const { error: stepError } = await supabase.from('recipe_steps').insert(
         validSteps.map((s, i) => ({
           recipe_id: recipe.id, step_number: i + 1, instruction: s.instruction.trim(),
         }))
       );
+      if (stepError) {
+        Alert.alert('Warning', 'Recipe saved but some steps may be missing.');
+      }
     }
 
     setSaving(false);
