@@ -57,6 +57,7 @@ export default function ListDetailScreen() {
   }, [id]);
 
   const toggleItem = async (item: ListItem) => {
+    setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, checked: !i.checked } : i));
     await supabase
       .from('list_items')
       .update({ checked: !item.checked })
@@ -69,8 +70,9 @@ export default function ListDetailScreen() {
 
   const confirmDeleteItem = async () => {
     if (!deleteItemId) return;
-    await supabase.from('list_items').delete().eq('id', deleteItemId);
+    setItems((prev) => prev.filter((i) => i.id !== deleteItemId));
     setDeleteItemId(null);
+    await supabase.from('list_items').delete().eq('id', deleteItemId);
   };
 
   const addItem = async () => {
@@ -117,6 +119,7 @@ export default function ListDetailScreen() {
   const clearChecked = async () => {
     const checkedIds = items.filter((i) => i.checked).map((i) => i.id);
     if (checkedIds.length === 0) return;
+    setItems((prev) => prev.filter((i) => !i.checked));
     await supabase.from('list_items').delete().in('id', checkedIds);
   };
 
