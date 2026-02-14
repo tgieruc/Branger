@@ -140,8 +140,11 @@ export default function ListsScreen() {
         }
       />
 
-      {showCreate && (
+      {showCreate ? (
         <View style={[styles.createRow, { marginBottom: keyboardHeight }]}>
+          <TouchableOpacity onPress={() => { setShowCreate(false); setNewName(''); }}>
+            <Ionicons name="close-circle" size={32} color="#999" />
+          </TouchableOpacity>
           <TextInput
             style={styles.createInput}
             placeholder="List name"
@@ -154,14 +157,14 @@ export default function ListsScreen() {
             <Ionicons name="checkmark-circle" size={32} color="#007AFF" />
           </TouchableOpacity>
         </View>
+      ) : (
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => setShowCreate(true)}
+        >
+          <Ionicons name="add" size={28} color="#fff" />
+        </TouchableOpacity>
       )}
-
-      <TouchableOpacity
-        style={[styles.fab, showCreate && styles.fabShifted, { bottom: 24 + keyboardHeight }]}
-        onPress={() => setShowCreate(!showCreate)}
-      >
-        <Ionicons name={showCreate ? 'close' : 'add'} size={28} color="#fff" />
-      </TouchableOpacity>
     </View>
   );
 }
@@ -187,15 +190,12 @@ const styles = StyleSheet.create({
   },
   createInput: {
     flex: 1, borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
-    padding: 10, fontSize: 15, marginRight: 8,
+    padding: 10, fontSize: 15, marginHorizontal: 8,
   },
   fab: {
     position: 'absolute', bottom: 24, right: 24, width: 56, height: 56,
     borderRadius: 28, backgroundColor: '#007AFF', justifyContent: 'center',
     alignItems: 'center', elevation: 4, shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4,
-  },
-  fabShifted: {
-    bottom: 80,
   },
 });
