@@ -44,3 +44,15 @@ app-example
 
 # worktrees
 .worktrees/
+
+# env files
+.env.testing
+
+# IDE
+.idea/
+
+# MCP config (contains project refs)
+.mcp.json
+
+# Supabase temp
+supabase/.temp/
