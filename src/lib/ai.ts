@@ -1,29 +1,19 @@
 import { supabase } from '@/lib/supabase';
 import type { AIRecipeResult } from '@/lib/types';
 
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-
 async function callEdgeFunction(
   functionName: string,
   body: Record<string, string>
 ): Promise<AIRecipeResult> {
-  const { data: { session } } = await supabase.auth.getSession();
-
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${session?.access_token}`,
-    },
-    body: JSON.stringify(body),
+  const { data, error } = await supabase.functions.invoke(functionName, {
+    body,
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'AI parsing failed');
+  if (error) {
+    throw new Error(error.message || 'AI parsing failed');
   }
 
-  return response.json();
+  return data as AIRecipeResult;
 }
 
 export async function parseRecipeFromText(text: string): Promise<AIRecipeResult> {

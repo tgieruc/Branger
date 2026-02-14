@@ -32,8 +32,13 @@ const mockStorage = {
   }),
 };
 
+const mockFunctions = {
+  invoke: jest.fn().mockResolvedValue({ data: null, error: null }),
+};
+
 export const supabase = {
   auth: mockAuth,
   from: mockFrom,
   storage: mockStorage,
+  functions: mockFunctions,
 };
