@@ -88,12 +88,12 @@ export default function RecipeDetailScreen() {
   };
 
   const handleAddToList = async () => {
-    if (!recipe) return;
+    if (!recipe || !user) return;
 
     const { data: memberships } = await supabase
       .from('list_members')
       .select('list_id, shopping_lists(id, name)')
-      .eq('user_id', user?.id ?? '');
+      .eq('user_id', user.id);
 
     const lists = (memberships ?? [])
       .map((m: Record<string, unknown>) => m.shopping_lists as { id: string; name: string } | null)
@@ -117,13 +117,11 @@ export default function RecipeDetailScreen() {
 
     const { error } = await supabase.rpc('add_items_to_list', {
       p_list_id: list.id,
-      p_items: JSON.stringify(
-        recipe.ingredients.map((ing) => ({
-          name: ing.name,
-          description: ing.description || null,
-          recipe_id: recipe.id,
-        }))
-      ),
+      p_items: recipe.ingredients.map((ing) => ({
+        name: ing.name,
+        description: ing.description || null,
+        recipe_id: recipe.id,
+      })),
     });
 
     if (error) {

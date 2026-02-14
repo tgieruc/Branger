@@ -54,7 +54,6 @@ BEGIN
 
   RETURN json_build_object(
     'id', v_recipe.id,
-    'user_id', v_recipe.user_id,
     'title', v_recipe.title,
     'photo_url', v_recipe.photo_url,
     'source_type', v_recipe.source_type,
@@ -96,6 +95,10 @@ RETURNS uuid AS $$
 DECLARE
   new_list_id uuid;
 BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
   INSERT INTO public.shopping_lists (name)
     VALUES (list_name)
     RETURNING id INTO new_list_id;
