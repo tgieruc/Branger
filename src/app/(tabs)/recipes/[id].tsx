@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   Share,
   Platform,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,12 +19,16 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import type { RecipeWithDetails } from '@/lib/types';
 
+type ListOption = { id: string; name: string };
+
 export default function RecipeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
   const [recipe, setRecipe] = useState<RecipeWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [listPickerVisible, setListPickerVisible] = useState(false);
+  const [availableLists, setAvailableLists] = useState<ListOption[]>([]);
 
   useEffect(() => {
     fetchRecipe();
@@ -115,37 +121,37 @@ export default function RecipeDetailScreen() {
       return;
     }
 
-    Alert.alert('Add to List', 'Select a list:', [
-      ...lists.map((list) => ({
-        text: list.name,
-        onPress: async () => {
-          const maxPos = await supabase
-            .from('list_items')
-            .select('position')
-            .eq('list_id', list.id)
-            .order('position', { ascending: false })
-            .limit(1)
-            .single();
+    setAvailableLists(lists);
+    setListPickerVisible(true);
+  };
 
-          const startPos = (maxPos.data?.position ?? -1) + 1;
+  const addIngredientsToList = async (list: ListOption) => {
+    if (!recipe) return;
+    setListPickerVisible(false);
 
-          await supabase.from('list_items').insert(
-            recipe.ingredients.map((ing, i) => ({
-              list_id: list.id,
-              name: ing.name,
-              description: ing.description || null,
-              recipe_id: recipe.id,
-              position: startPos + i,
-            })),
-          );
-          Alert.alert(
-            'Done',
-            `Added ${recipe.ingredients.length} items to ${list.name}`,
-          );
-        },
+    const maxPos = await supabase
+      .from('list_items')
+      .select('position')
+      .eq('list_id', list.id)
+      .order('position', { ascending: false })
+      .limit(1)
+      .single();
+
+    const startPos = (maxPos.data?.position ?? -1) + 1;
+
+    await supabase.from('list_items').insert(
+      recipe.ingredients.map((ing, i) => ({
+        list_id: list.id,
+        name: ing.name,
+        description: ing.description || null,
+        recipe_id: recipe.id,
+        position: startPos + i,
       })),
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    );
+    Alert.alert(
+      'Done',
+      `Added ${recipe.ingredients.length} items to ${list.name}`,
+    );
   };
 
   if (loading) {
@@ -204,6 +210,35 @@ export default function RecipeDetailScreen() {
           </View>
         ))}
       </ScrollView>
+
+      <Modal
+        visible={listPickerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setListPickerVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setListPickerVisible(false)}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add to List</Text>
+            {availableLists.map((list) => (
+              <TouchableOpacity
+                key={list.id}
+                style={styles.modalOption}
+                onPress={() => addIngredientsToList(list)}
+              >
+                <Ionicons name="list-outline" size={20} color="#007AFF" />
+                <Text style={styles.modalOptionText}>{list.name}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={styles.modalCancel}
+              onPress={() => setListPickerVisible(false)}
+            >
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
     </>
   );
 }
@@ -239,4 +274,20 @@ const styles = StyleSheet.create({
   stepRow: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 6 },
   stepNumber: { fontSize: 15, fontWeight: '600', marginRight: 8, width: 24 },
   stepText: { fontSize: 15, flex: 1 },
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center',
+    alignItems: 'center', padding: 32,
+  },
+  modalContent: {
+    backgroundColor: '#fff', borderRadius: 16, padding: 20, width: '100%',
+    maxWidth: 360,
+  },
+  modalTitle: { fontSize: 18, fontWeight: '600', marginBottom: 16, textAlign: 'center' },
+  modalOption: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#eee',
+  },
+  modalOptionText: { fontSize: 16 },
+  modalCancel: { paddingVertical: 14, marginTop: 4 },
+  modalCancelText: { fontSize: 16, color: '#888', textAlign: 'center' },
 });
