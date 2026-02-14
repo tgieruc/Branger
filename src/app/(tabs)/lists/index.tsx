@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 type ListSummary = {
   id: string;
@@ -23,6 +24,7 @@ export default function ListsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
+  const [deleteListId, setDeleteListId] = useState<string | null>(null);
   const keyboardHeight = useKeyboardHeight();
 
   const fetchLists = async () => {
@@ -104,6 +106,17 @@ export default function ListsScreen() {
     fetchLists();
   };
 
+  const confirmDeleteList = async () => {
+    if (!deleteListId) return;
+    await supabase
+      .from('list_members')
+      .delete()
+      .eq('list_id', deleteListId)
+      .eq('user_id', user!.id);
+    setDeleteListId(null);
+    fetchLists();
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -118,17 +131,26 @@ export default function ListsScreen() {
         data={lists}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <Link href={`/(tabs)/lists/${item.id}`} asChild>
-            <TouchableOpacity style={styles.card}>
-              <View style={styles.cardInfo}>
-                <Text style={styles.cardTitle}>{item.name}</Text>
-                <Text style={styles.cardSub}>
-                  {item.unchecked_count} remaining / {item.item_count} total
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          <View style={styles.cardRow}>
+            <Link href={`/(tabs)/lists/${item.id}`} asChild style={{ flex: 1 }}>
+              <TouchableOpacity style={styles.card}>
+                <View style={styles.cardInfo}>
+                  <Text style={styles.cardTitle}>{item.name}</Text>
+                  <Text style={styles.cardSub}>
+                    {item.unchecked_count} remaining / {item.item_count} total
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#ccc" />
+              </TouchableOpacity>
+            </Link>
+            <TouchableOpacity
+              style={styles.cardDelete}
+              onPress={() => setDeleteListId(item.id)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="trash-outline" size={20} color="#ff3b30" />
             </TouchableOpacity>
-          </Link>
+          </View>
         )}
         contentContainerStyle={styles.list}
         keyboardShouldPersistTaps="handled"
@@ -165,6 +187,14 @@ export default function ListsScreen() {
           <Ionicons name="add" size={28} color="#fff" />
         </TouchableOpacity>
       )}
+
+      <ConfirmDialog
+        visible={deleteListId !== null}
+        title="Delete List"
+        message="Are you sure you want to delete this list and all its items?"
+        onConfirm={confirmDeleteList}
+        onCancel={() => setDeleteListId(null)}
+      />
     </View>
   );
 }
@@ -174,12 +204,16 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   list: { paddingVertical: 8, paddingBottom: 80 },
   empty: { textAlign: 'center', marginTop: 48, color: '#888' },
+  cardRow: {
+    flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginVertical: 6,
+  },
   card: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff',
-    marginHorizontal: 16, marginVertical: 6, padding: 16, borderRadius: 12,
+    flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff',
+    padding: 16, borderRadius: 12,
     elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1, shadowRadius: 4,
   },
+  cardDelete: { padding: 12 },
   cardInfo: { flex: 1 },
   cardTitle: { fontSize: 16, fontWeight: '600' },
   cardSub: { fontSize: 13, color: '#888', marginTop: 4 },
