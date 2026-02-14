@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, ActivityIndicator,
+  View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator,
   Platform, Share,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
@@ -22,7 +22,7 @@ export default function ListDetailScreen() {
   const [newItemName, setNewItemName] = useState('');
   const [newItemDesc, setNewItemDesc] = useState('');
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
-  const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
+  const [deleteListVisible, setDeleteListVisible] = useState(false);
   const keyboardHeight = useKeyboardHeight();
 
   const fetchData = async () => {
@@ -41,7 +41,6 @@ export default function ListDetailScreen() {
   useEffect(() => {
     fetchData();
 
-    // Realtime subscription for items
     const channel = supabase
       .channel(`list-${id}`)
       .on('postgres_changes', {
@@ -90,12 +89,8 @@ export default function ListDetailScreen() {
     setNewItemDesc('');
   };
 
-  const handleLeave = () => {
-    setLeaveConfirmVisible(true);
-  };
-
-  const confirmLeave = async () => {
-    setLeaveConfirmVisible(false);
+  const confirmDeleteList = async () => {
+    setDeleteListVisible(false);
     await supabase
       .from('list_members')
       .delete()
@@ -122,7 +117,6 @@ export default function ListDetailScreen() {
   const clearChecked = async () => {
     const checkedIds = items.filter((i) => i.checked).map((i) => i.id);
     if (checkedIds.length === 0) return;
-
     await supabase.from('list_items').delete().in('id', checkedIds);
   };
 
@@ -134,29 +128,30 @@ export default function ListDetailScreen() {
     );
   }
 
-  // Sort: unchecked first, then checked
   const sortedItems = [...items].sort((a, b) => {
     if (a.checked !== b.checked) return a.checked ? 1 : -1;
     return a.position - b.position;
   });
 
+  const checkedCount = items.filter((i) => i.checked).length;
+
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: list?.name ?? 'List' }} />
-      <View style={styles.header}>
-        <Text style={styles.title}>{list?.name}</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={handleShareList} style={styles.headerButton}>
-            <Ionicons name="share-outline" size={20} color="#007AFF" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={clearChecked} style={styles.headerButton}>
-            <Ionicons name="trash-outline" size={20} color="#888" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleLeave} style={styles.headerButton}>
-            <Ionicons name="exit-outline" size={20} color="#ff3b30" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <Stack.Screen
+        options={{
+          title: list?.name ?? 'List',
+          headerRight: () => (
+            <View style={styles.headerRight}>
+              <TouchableOpacity onPress={handleShareList} style={styles.headerBtn}>
+                <Ionicons name="share-outline" size={22} color="#007AFF" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setDeleteListVisible(true)} style={styles.headerBtn}>
+                <Ionicons name="trash-outline" size={22} color="#ff3b30" />
+              </TouchableOpacity>
+            </View>
+          ),
+        }}
+      />
 
       <FlatList
         data={sortedItems}
@@ -192,6 +187,15 @@ export default function ListDetailScreen() {
             </TouchableOpacity>
           </TouchableOpacity>
         )}
+        ListFooterComponent={
+          checkedCount > 0 ? (
+            <TouchableOpacity onPress={clearChecked} style={styles.clearChecked}>
+              <Text style={styles.clearCheckedText}>
+                Clear {checkedCount} checked item{checkedCount !== 1 ? 's' : ''}
+              </Text>
+            </TouchableOpacity>
+          ) : null
+        }
       />
 
       <View style={[styles.addRow, { marginBottom: keyboardHeight }]}>
@@ -223,16 +227,15 @@ export default function ListDetailScreen() {
       />
 
       <ConfirmDialog
-        visible={leaveConfirmVisible}
-        title="Leave List"
+        visible={deleteListVisible}
+        title="Delete List"
         message={
           members.length === 1
-            ? 'You are the last member. The list will be deleted.'
-            : 'Are you sure you want to leave this list?'
+            ? 'This will permanently delete the list and all its items.'
+            : 'You will be removed from this list.'
         }
-        confirmLabel="Leave"
-        onConfirm={confirmLeave}
-        onCancel={() => setLeaveConfirmVisible(false)}
+        onConfirm={confirmDeleteList}
+        onCancel={() => setDeleteListVisible(false)}
       />
     </View>
   );
@@ -241,13 +244,8 @@ export default function ListDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee',
-  },
-  title: { fontSize: 20, fontWeight: 'bold', flex: 1 },
-  headerActions: { flexDirection: 'row', gap: 12 },
-  headerButton: { padding: 4 },
+  headerRight: { flexDirection: 'row', gap: 16, marginRight: 4 },
+  headerBtn: { padding: 4 },
   itemRow: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16,
     paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth,
@@ -258,6 +256,8 @@ const styles = StyleSheet.create({
   itemDesc: { fontSize: 13, color: '#888', marginTop: 2 },
   checkedText: { textDecorationLine: 'line-through', color: '#bbb' },
   deleteButton: { padding: 4 },
+  clearChecked: { paddingVertical: 14, alignItems: 'center' },
+  clearCheckedText: { fontSize: 14, color: '#ff3b30' },
   addRow: {
     flexDirection: 'row', alignItems: 'center', padding: 12,
     borderTopWidth: 1, borderTopColor: '#eee', backgroundColor: '#fafafa',

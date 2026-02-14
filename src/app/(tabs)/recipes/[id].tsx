@@ -170,27 +170,30 @@ export default function RecipeDetailScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: recipe.title }} />
+      <Stack.Screen
+        options={{
+          title: recipe.title,
+          headerRight: () => (
+            <View style={styles.headerRight}>
+              <TouchableOpacity onPress={handleShare} style={styles.headerBtn}>
+                <Ionicons name="share-outline" size={22} color="#007AFF" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleDelete} style={styles.headerBtn}>
+                <Ionicons name="trash-outline" size={22} color="#ff3b30" />
+              </TouchableOpacity>
+            </View>
+          ),
+        }}
+      />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {recipe.photo_url && (
           <Image source={{ uri: recipe.photo_url }} style={styles.image} />
         )}
-        <Text style={styles.title}>{recipe.title}</Text>
 
-        <View style={styles.actions}>
-          <TouchableOpacity onPress={handleShare} style={styles.actionButton}>
-            <Ionicons name="share-outline" size={20} color="#007AFF" />
-            <Text style={styles.actionText}>Share</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleAddToList} style={styles.actionButton}>
-            <Ionicons name="cart-outline" size={20} color="#007AFF" />
-            <Text style={styles.actionText}>Add to List</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleDelete} style={styles.actionButton}>
-            <Ionicons name="trash-outline" size={20} color="#ff3b30" />
-            <Text style={[styles.actionText, { color: '#ff3b30' }]}>Delete</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity onPress={handleAddToList} style={styles.addToListButton}>
+          <Ionicons name="cart-outline" size={20} color="#007AFF" />
+          <Text style={styles.addToListText}>Add to Shopping List</Text>
+        </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>Ingredients</Text>
         {recipe.ingredients.map((ing) => (
@@ -253,16 +256,15 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   content: { paddingBottom: 48 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  headerRight: { flexDirection: 'row', gap: 16, marginRight: 4 },
+  headerBtn: { padding: 4 },
   image: { width: '100%', height: 200 },
-  title: { fontSize: 24, fontWeight: 'bold', padding: 16, paddingBottom: 8 },
-  actions: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 12,
-    marginBottom: 16,
+  addToListButton: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginHorizontal: 16, marginVertical: 12, paddingVertical: 12, paddingHorizontal: 16,
+    borderRadius: 10, backgroundColor: '#f0f7ff', borderWidth: 1, borderColor: '#d0e4ff',
   },
-  actionButton: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  actionText: { color: '#007AFF', fontSize: 14 },
+  addToListText: { color: '#007AFF', fontSize: 15, fontWeight: '500' },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
