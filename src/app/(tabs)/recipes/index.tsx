@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Link, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +17,7 @@ import type { Recipe } from '@/lib/types';
 export default function RecipesScreen() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchRecipes = async () => {
     const { data } = await supabase
@@ -25,6 +27,12 @@ export default function RecipesScreen() {
 
     if (data) setRecipes(data);
     setLoading(false);
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchRecipes();
+    setRefreshing(false);
   };
 
   useFocusEffect(
@@ -48,6 +56,9 @@ export default function RecipesScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <RecipeCard recipe={item} />}
         contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         ListEmptyComponent={
           <Text style={styles.empty}>No recipes yet. Tap + to create one.</Text>
         }
@@ -64,7 +75,7 @@ export default function RecipesScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  list: { paddingVertical: 8 },
+  list: { paddingVertical: 8, paddingBottom: 80 },
   empty: { textAlign: 'center', marginTop: 48, color: '#888' },
   fab: {
     position: 'absolute',

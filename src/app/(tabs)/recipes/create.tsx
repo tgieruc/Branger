@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert,
-  ActivityIndicator,
+  ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -86,12 +86,7 @@ export default function CreateRecipeScreen() {
     setAiLoading(false);
   };
 
-  const handleAiPhoto = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.8,
-    });
-
+  const processPhotoResult = async (result: ImagePicker.ImagePickerResult) => {
     if (result.canceled || !result.assets[0]) return;
 
     setAiLoading(true);
@@ -119,6 +114,35 @@ export default function CreateRecipeScreen() {
       Alert.alert('Error', e.message);
     }
     setAiLoading(false);
+  };
+
+  const launchCamera = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Camera access is required to take photos.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+    });
+    processPhotoResult(result);
+  };
+
+  const launchLibrary = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+    });
+    processPhotoResult(result);
+  };
+
+  const handleAiPhoto = () => {
+    Alert.alert('Add Recipe Photo', 'Choose a photo source', [
+      { text: 'Take Photo', onPress: launchCamera },
+      { text: 'Choose from Library', onPress: launchLibrary },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   // --- Ingredient/step helpers ---
@@ -176,119 +200,133 @@ export default function CreateRecipeScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Mode selector */}
-      <View style={styles.modeRow}>
-        {MODES.map((m) => (
-          <TouchableOpacity
-            key={m.key}
-            style={[styles.modeButton, mode === m.key && styles.modeActive]}
-            onPress={() => setMode(m.key)}
-          >
-            <Ionicons name={m.icon as any} size={18} color={mode === m.key ? '#fff' : '#007AFF'} />
-            <Text style={[styles.modeText, mode === m.key && styles.modeTextActive]}>
-              {m.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+        >
+          {/* Mode selector */}
+          <View style={styles.modeRow}>
+            {MODES.map((m) => (
+              <TouchableOpacity
+                key={m.key}
+                style={[styles.modeButton, mode === m.key && styles.modeActive]}
+                onPress={() => setMode(m.key)}
+              >
+                <Ionicons name={m.icon as any} size={18} color={mode === m.key ? '#fff' : '#007AFF'} />
+                <Text style={[styles.modeText, mode === m.key && styles.modeTextActive]}>
+                  {m.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
-      {aiLoading && (
-        <View style={styles.aiLoading}>
-          <ActivityIndicator size="large" />
-          <Text style={styles.aiLoadingText}>Parsing recipe...</Text>
-        </View>
-      )}
+          {aiLoading && (
+            <View style={styles.aiLoading}>
+              <ActivityIndicator size="large" />
+              <Text style={styles.aiLoadingText}>Parsing recipe...</Text>
+            </View>
+          )}
 
-      {/* AI input areas */}
-      {mode === 'text' && !aiLoading && (
-        <View>
-          <Text style={styles.label}>Paste recipe text</Text>
-          <TextInput
-            style={[styles.input, { height: 160, textAlignVertical: 'top' }]}
-            placeholder="Paste a recipe here..."
-            value={aiText}
-            onChangeText={setAiText}
-            multiline
-          />
-          <TouchableOpacity style={styles.aiButton} onPress={handleAiText}>
-            <Text style={styles.aiButtonText}>Generate Recipe</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {mode === 'url' && !aiLoading && (
-        <View>
-          <Text style={styles.label}>Recipe URL</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="https://example.com/recipe"
-            value={aiUrl}
-            onChangeText={setAiUrl}
-            autoCapitalize="none"
-            keyboardType="url"
-          />
-          <TouchableOpacity style={styles.aiButton} onPress={handleAiUrl}>
-            <Text style={styles.aiButtonText}>Import Recipe</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {mode === 'photo' && !aiLoading && (
-        <View>
-          <TouchableOpacity style={styles.photoButton} onPress={handleAiPhoto}>
-            <Ionicons name="camera-outline" size={32} color="#007AFF" />
-            <Text style={styles.photoText}>Pick a photo of a recipe</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Manual form (always shown for manual mode, shown after AI populates) */}
-      {(mode === 'manual') && !aiLoading && (
-        <>
-          <Text style={styles.label}>Title</Text>
-          <TextInput style={styles.input} placeholder="Recipe title" value={title} onChangeText={setTitle} />
-
-          <Text style={styles.label}>Ingredients</Text>
-          {ingredients.map((ing, i) => (
-            <View key={i} style={styles.row}>
-              <TextInput style={[styles.input, { flex: 1, marginRight: 8 }]} placeholder="Item" value={ing.name} onChangeText={(v) => updateIngredient(i, 'name', v)} />
-              <TextInput style={[styles.input, { flex: 1, marginRight: 8 }]} placeholder="Amount" value={ing.description} onChangeText={(v) => updateIngredient(i, 'description', v)} />
-              <TouchableOpacity onPress={() => removeIngredient(i)}>
-                <Ionicons name="close-circle" size={24} color="#ff3b30" />
+          {/* AI input areas */}
+          {mode === 'text' && !aiLoading && (
+            <View>
+              <Text style={styles.label}>Paste recipe text</Text>
+              <TextInput
+                style={[styles.input, { height: 160, textAlignVertical: 'top' }]}
+                placeholder="Paste a recipe here..."
+                value={aiText}
+                onChangeText={setAiText}
+                multiline
+              />
+              <TouchableOpacity style={styles.aiButton} onPress={handleAiText}>
+                <Text style={styles.aiButtonText}>Generate Recipe</Text>
               </TouchableOpacity>
             </View>
-          ))}
-          <TouchableOpacity onPress={addIngredient} style={styles.addRow}>
-            <Ionicons name="add-circle-outline" size={20} color="#007AFF" />
-            <Text style={styles.addText}>Add ingredient</Text>
-          </TouchableOpacity>
+          )}
 
-          <Text style={styles.label}>Steps</Text>
-          {steps.map((step, i) => (
-            <View key={i} style={styles.row}>
-              <Text style={styles.stepNumber}>{i + 1}.</Text>
-              <TextInput style={[styles.input, { flex: 1, marginRight: 8 }]} placeholder="Instruction" value={step.instruction} onChangeText={(v) => updateStep(i, v)} multiline />
-              <TouchableOpacity onPress={() => removeStep(i)}>
-                <Ionicons name="close-circle" size={24} color="#ff3b30" />
+          {mode === 'url' && !aiLoading && (
+            <View>
+              <Text style={styles.label}>Recipe URL</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="https://example.com/recipe"
+                value={aiUrl}
+                onChangeText={setAiUrl}
+                autoCapitalize="none"
+                keyboardType="url"
+              />
+              <TouchableOpacity style={styles.aiButton} onPress={handleAiUrl}>
+                <Text style={styles.aiButtonText}>Import Recipe</Text>
               </TouchableOpacity>
             </View>
-          ))}
-          <TouchableOpacity onPress={addStep} style={styles.addRow}>
-            <Ionicons name="add-circle-outline" size={20} color="#007AFF" />
-            <Text style={styles.addText}>Add step</Text>
-          </TouchableOpacity>
+          )}
 
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={saving}>
-            <Text style={styles.saveText}>{saving ? 'Saving...' : 'Save Recipe'}</Text>
-          </TouchableOpacity>
-        </>
-      )}
-    </ScrollView>
+          {mode === 'photo' && !aiLoading && (
+            <View>
+              <TouchableOpacity style={styles.photoButton} onPress={handleAiPhoto}>
+                <Ionicons name="camera-outline" size={32} color="#007AFF" />
+                <Text style={styles.photoText}>Take or choose a photo</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Manual form (always shown for manual mode, shown after AI populates) */}
+          {(mode === 'manual') && !aiLoading && (
+            <>
+              <Text style={styles.label}>Title</Text>
+              <TextInput style={styles.input} placeholder="Recipe title" value={title} onChangeText={setTitle} />
+
+              <Text style={styles.label}>Ingredients</Text>
+              {ingredients.map((ing, i) => (
+                <View key={i} style={styles.row}>
+                  <TextInput style={[styles.input, { flex: 1, marginRight: 8 }]} placeholder="Item" value={ing.name} onChangeText={(v) => updateIngredient(i, 'name', v)} />
+                  <TextInput style={[styles.input, { flex: 1, marginRight: 8 }]} placeholder="Amount" value={ing.description} onChangeText={(v) => updateIngredient(i, 'description', v)} />
+                  <TouchableOpacity onPress={() => removeIngredient(i)}>
+                    <Ionicons name="close-circle" size={24} color="#ff3b30" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <TouchableOpacity onPress={addIngredient} style={styles.addRow}>
+                <Ionicons name="add-circle-outline" size={20} color="#007AFF" />
+                <Text style={styles.addText}>Add ingredient</Text>
+              </TouchableOpacity>
+
+              <Text style={styles.label}>Steps</Text>
+              {steps.map((step, i) => (
+                <View key={i} style={styles.row}>
+                  <Text style={styles.stepNumber}>{i + 1}.</Text>
+                  <TextInput style={[styles.input, { flex: 1, marginRight: 8 }]} placeholder="Instruction" value={step.instruction} onChangeText={(v) => updateStep(i, v)} multiline />
+                  <TouchableOpacity onPress={() => removeStep(i)}>
+                    <Ionicons name="close-circle" size={24} color="#ff3b30" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <TouchableOpacity onPress={addStep} style={styles.addRow}>
+                <Ionicons name="add-circle-outline" size={20} color="#007AFF" />
+                <Text style={styles.addText}>Add step</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={saving}>
+                <Text style={styles.saveText}>{saving ? 'Saving...' : 'Save Recipe'}</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   container: { flex: 1, backgroundColor: '#fff' },
   content: { padding: 16, paddingBottom: 48 },
   modeRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },

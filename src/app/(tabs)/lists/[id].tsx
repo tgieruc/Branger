@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, ActivityIndicator,
+  KeyboardAvoidingView, Platform, Share,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
@@ -59,7 +60,16 @@ export default function ListDetailScreen() {
   };
 
   const deleteItem = async (itemId: string) => {
-    await supabase.from('list_items').delete().eq('id', itemId);
+    Alert.alert('Delete Item', 'Remove this item from the list?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await supabase.from('list_items').delete().eq('id', itemId);
+        },
+      },
+    ]);
   };
 
   const addItem = async () => {
@@ -102,11 +112,19 @@ export default function ListDetailScreen() {
     );
   };
 
-  const handleAddMember = () => {
-    Alert.alert(
-      'Share List',
-      `Share this list ID with them: ${id}\n\n(In-app member invite coming soon)`
-    );
+  const handleShareList = async () => {
+    if (!list) return;
+    const shareUrl = `branger://list/${id}`;
+    try {
+      await Share.share({
+        message: Platform.OS === 'ios'
+          ? `Join my shopping list "${list.name}" on Branger`
+          : `Join my shopping list "${list.name}" on Branger\n${shareUrl}`,
+        url: Platform.OS === 'ios' ? shareUrl : undefined,
+      });
+    } catch {
+      // User cancelled share sheet
+    }
   };
 
   const clearChecked = async () => {
@@ -131,12 +149,17 @@ export default function ListDetailScreen() {
   });
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+    >
+      <Stack.Screen options={{ title: list?.name ?? 'List' }} />
       <View style={styles.header}>
         <Text style={styles.title}>{list?.name}</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity onPress={handleAddMember} style={styles.headerButton}>
-            <Ionicons name="person-add-outline" size={20} color="#007AFF" />
+          <TouchableOpacity onPress={handleShareList} style={styles.headerButton}>
+            <Ionicons name="share-outline" size={20} color="#007AFF" />
           </TouchableOpacity>
           <TouchableOpacity onPress={clearChecked} style={styles.headerButton}>
             <Ionicons name="trash-outline" size={20} color="#888" />
@@ -150,11 +173,12 @@ export default function ListDetailScreen() {
       <FlatList
         data={sortedItems}
         keyExtractor={(item) => item.id}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.itemRow}
             onPress={() => toggleItem(item)}
-            onLongPress={() => deleteItem(item.id)}
           >
             <Ionicons
               name={item.checked ? 'checkbox' : 'square-outline'}
@@ -171,6 +195,13 @@ export default function ListDetailScreen() {
                 </Text>
               ) : null}
             </View>
+            <TouchableOpacity
+              onPress={() => deleteItem(item.id)}
+              style={styles.deleteButton}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="close-circle-outline" size={20} color="#ccc" />
+            </TouchableOpacity>
           </TouchableOpacity>
         )}
       />
@@ -194,7 +225,7 @@ export default function ListDetailScreen() {
           <Ionicons name="add-circle" size={36} color="#007AFF" />
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -217,6 +248,7 @@ const styles = StyleSheet.create({
   itemName: { fontSize: 16 },
   itemDesc: { fontSize: 13, color: '#888', marginTop: 2 },
   checkedText: { textDecorationLine: 'line-through', color: '#bbb' },
+  deleteButton: { padding: 4 },
   addRow: {
     flexDirection: 'row', alignItems: 'center', padding: 12,
     borderTopWidth: 1, borderTopColor: '#eee', backgroundColor: '#fafafa',

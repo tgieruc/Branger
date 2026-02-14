@@ -8,8 +8,10 @@ import {
   Alert,
   Image,
   ActivityIndicator,
+  Share,
+  Platform,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
@@ -74,14 +76,23 @@ export default function RecipeDetailScreen() {
 
   const handleShare = async () => {
     if (!recipe) return;
-    if (recipe.share_token) {
-      Alert.alert('Share Link', `Share this token: ${recipe.share_token}`);
-      return;
+    let token = recipe.share_token;
+    if (!token) {
+      token = globalThis.crypto.randomUUID();
+      await supabase.from('recipes').update({ share_token: token }).eq('id', id!);
+      setRecipe({ ...recipe, share_token: token });
     }
-    const token = globalThis.crypto.randomUUID();
-    await supabase.from('recipes').update({ share_token: token }).eq('id', id!);
-    setRecipe({ ...recipe, share_token: token });
-    Alert.alert('Share Link', `Share this token: ${token}`);
+    const shareUrl = `branger://share/${token}`;
+    try {
+      await Share.share({
+        message: Platform.OS === 'ios'
+          ? `Check out this recipe: ${recipe.title}`
+          : `Check out this recipe: ${recipe.title}\n${shareUrl}`,
+        url: Platform.OS === 'ios' ? shareUrl : undefined,
+      });
+    } catch {
+      // User cancelled share sheet
+    }
   };
 
   const handleAddToList = async () => {
@@ -154,43 +165,46 @@ export default function RecipeDetailScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {recipe.photo_url && (
-        <Image source={{ uri: recipe.photo_url }} style={styles.image} />
-      )}
-      <Text style={styles.title}>{recipe.title}</Text>
+    <>
+      <Stack.Screen options={{ title: recipe.title }} />
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        {recipe.photo_url && (
+          <Image source={{ uri: recipe.photo_url }} style={styles.image} />
+        )}
+        <Text style={styles.title}>{recipe.title}</Text>
 
-      <View style={styles.actions}>
-        <TouchableOpacity onPress={handleShare} style={styles.actionButton}>
-          <Ionicons name="share-outline" size={20} color="#007AFF" />
-          <Text style={styles.actionText}>Share</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleAddToList} style={styles.actionButton}>
-          <Ionicons name="cart-outline" size={20} color="#007AFF" />
-          <Text style={styles.actionText}>Add to List</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleDelete} style={styles.actionButton}>
-          <Ionicons name="trash-outline" size={20} color="#ff3b30" />
-          <Text style={[styles.actionText, { color: '#ff3b30' }]}>Delete</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.sectionTitle}>Ingredients</Text>
-      {recipe.ingredients.map((ing) => (
-        <View key={ing.id} style={styles.ingredientRow}>
-          <Text style={styles.ingredientName}>{ing.name}</Text>
-          <Text style={styles.ingredientDesc}>{ing.description}</Text>
+        <View style={styles.actions}>
+          <TouchableOpacity onPress={handleShare} style={styles.actionButton}>
+            <Ionicons name="share-outline" size={20} color="#007AFF" />
+            <Text style={styles.actionText}>Share</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleAddToList} style={styles.actionButton}>
+            <Ionicons name="cart-outline" size={20} color="#007AFF" />
+            <Text style={styles.actionText}>Add to List</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleDelete} style={styles.actionButton}>
+            <Ionicons name="trash-outline" size={20} color="#ff3b30" />
+            <Text style={[styles.actionText, { color: '#ff3b30' }]}>Delete</Text>
+          </TouchableOpacity>
         </View>
-      ))}
 
-      <Text style={styles.sectionTitle}>Steps</Text>
-      {recipe.steps.map((step) => (
-        <View key={step.id} style={styles.stepRow}>
-          <Text style={styles.stepNumber}>{step.step_number}.</Text>
-          <Text style={styles.stepText}>{step.instruction}</Text>
-        </View>
-      ))}
-    </ScrollView>
+        <Text style={styles.sectionTitle}>Ingredients</Text>
+        {recipe.ingredients.map((ing) => (
+          <View key={ing.id} style={styles.ingredientRow}>
+            <Text style={styles.ingredientName}>{ing.name}</Text>
+            <Text style={styles.ingredientDesc}>{ing.description}</Text>
+          </View>
+        ))}
+
+        <Text style={styles.sectionTitle}>Steps</Text>
+        {recipe.steps.map((step) => (
+          <View key={step.id} style={styles.stepRow}>
+            <Text style={styles.stepNumber}>{step.step_number}.</Text>
+            <Text style={styles.stepText}>{step.instruction}</Text>
+          </View>
+        ))}
+      </ScrollView>
+    </>
   );
 }
 

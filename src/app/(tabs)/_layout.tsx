@@ -6,15 +6,16 @@ import { useAuth } from '@/lib/auth';
 export default function TabLayout() {
   const { signOut } = useAuth();
 
+  const headerRight = () => (
+    <TouchableOpacity onPress={signOut} style={{ marginRight: 16 }}>
+      <Ionicons name="log-out-outline" size={24} color="#007AFF" />
+    </TouchableOpacity>
+  );
+
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: '#007AFF',
-        headerRight: () => (
-          <TouchableOpacity onPress={signOut} style={{ marginRight: 16 }}>
-            <Ionicons name="log-out-outline" size={24} color="#007AFF" />
-          </TouchableOpacity>
-        ),
       }}
     >
       <Tabs.Screen

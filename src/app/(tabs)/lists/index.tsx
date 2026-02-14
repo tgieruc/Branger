@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, TextInput, ActivityIndicator,
+  KeyboardAvoidingView, Platform, RefreshControl,
 } from 'react-native';
 import { Link, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +19,7 @@ export default function ListsScreen() {
   const { user } = useAuth();
   const [lists, setLists] = useState<ListSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
 
@@ -73,6 +75,12 @@ export default function ListsScreen() {
     setLoading(false);
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchLists();
+    setRefreshing(false);
+  };
+
   useFocusEffect(useCallback(() => {
     fetchLists();
   }, []));
@@ -80,22 +88,14 @@ export default function ListsScreen() {
   const handleCreate = async () => {
     if (!newName.trim()) return;
 
-    const { data: list, error } = await supabase
-      .from('shopping_lists')
-      .insert({ name: newName.trim() })
-      .select()
-      .single();
+    const { error } = await supabase.rpc('create_list_with_member', {
+      list_name: newName.trim(),
+    });
 
-    if (error || !list) {
-      Alert.alert('Error', error?.message ?? 'Failed to create list');
+    if (error) {
+      Alert.alert('Error', error.message);
       return;
     }
-
-    // Add creator as first member
-    await supabase.from('list_members').insert({
-      list_id: list.id,
-      user_id: user!.id,
-    });
 
     setNewName('');
     setShowCreate(false);
@@ -111,7 +111,11 @@ export default function ListsScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+    >
       <FlatList
         data={lists}
         keyExtractor={(item) => item.id}
@@ -129,6 +133,10 @@ export default function ListsScreen() {
           </Link>
         )}
         contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         ListEmptyComponent={
           <Text style={styles.empty}>No lists yet. Tap + to create one.</Text>
         }
@@ -150,17 +158,20 @@ export default function ListsScreen() {
         </View>
       )}
 
-      <TouchableOpacity style={styles.fab} onPress={() => setShowCreate(!showCreate)}>
+      <TouchableOpacity
+        style={[styles.fab, showCreate && styles.fabShifted]}
+        onPress={() => setShowCreate(!showCreate)}
+      >
         <Ionicons name={showCreate ? 'close' : 'add'} size={28} color="#fff" />
       </TouchableOpacity>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  list: { paddingVertical: 8 },
+  list: { paddingVertical: 8, paddingBottom: 80 },
   empty: { textAlign: 'center', marginTop: 48, color: '#888' },
   card: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff',
@@ -185,5 +196,8 @@ const styles = StyleSheet.create({
     borderRadius: 28, backgroundColor: '#007AFF', justifyContent: 'center',
     alignItems: 'center', elevation: 4, shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4,
+  },
+  fabShifted: {
+    bottom: 80,
   },
 });
