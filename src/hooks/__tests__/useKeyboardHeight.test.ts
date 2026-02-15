@@ -7,10 +7,10 @@ describe('useKeyboardHeight', () => {
 
   beforeEach(() => {
     listeners = {};
-    jest.spyOn(Keyboard, 'addListener').mockImplementation((event: string, cb: any) => {
+    jest.spyOn(Keyboard, 'addListener').mockImplementation(((event: string, cb: any) => {
       listeners[event] = cb;
       return { remove: jest.fn() };
-    });
+    }) as any);
   });
 
   afterEach(() => {

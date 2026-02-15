@@ -23,11 +23,15 @@ export const Link = jest.fn().mockImplementation(({ children }) => children);
 
 export const Redirect = jest.fn().mockImplementation(() => null);
 
-export const Stack = jest.fn().mockImplementation(({ children }) => children);
-Stack.Screen = jest.fn().mockImplementation(() => null);
+export const Stack = Object.assign(
+  jest.fn().mockImplementation(({ children }: any) => children),
+  { Screen: jest.fn().mockImplementation(() => null) },
+);
 
-export const Tabs = jest.fn().mockImplementation(({ children }) => children);
-Tabs.Screen = jest.fn().mockImplementation(() => null);
+export const Tabs = Object.assign(
+  jest.fn().mockImplementation(({ children }: any) => children),
+  { Screen: jest.fn().mockImplementation(() => null) },
+);
 
 export const Slot = jest.fn().mockImplementation(() => null);
 

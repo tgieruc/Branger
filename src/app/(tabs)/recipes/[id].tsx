@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -36,11 +36,7 @@ export default function RecipeDetailScreen() {
   const [showNewListInput, setShowNewListInput] = useState(false);
   const [newListName, setNewListName] = useState('');
 
-  useEffect(() => {
-    fetchRecipe();
-  }, [id]);
-
-  const fetchRecipe = async () => {
+  const fetchRecipe = useCallback(async () => {
     // Show cached data immediately if available
     const cached = await getCachedRecipeDetail(id!);
     if (cached) {
@@ -68,7 +64,11 @@ export default function RecipeDetailScreen() {
     setRecipe(recipeWithDetails);
     setCachedRecipeDetail(id!, recipeWithDetails);
     setLoading(false);
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchRecipe();
+  }, [fetchRecipe]);
 
   const handleDelete = () => {
     setDeleteConfirmVisible(true);

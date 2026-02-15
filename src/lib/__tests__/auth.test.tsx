@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, act, waitFor } from '@testing-library/react-native';
+import { render, waitFor } from '@testing-library/react-native';
 import { Text } from 'react-native';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
@@ -62,9 +62,8 @@ describe('useAuth', () => {
   it('signIn calls supabase.auth.signInWithPassword', async () => {
     function SignInTest() {
       const { signIn } = useAuth();
-      React.useEffect(() => {
-        signIn('test@example.com', 'password123');
-      }, []);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      React.useEffect(() => { signIn('test@example.com', 'password123'); }, []);
       return null;
     }
 
@@ -85,9 +84,8 @@ describe('useAuth', () => {
   it('signUp calls supabase.auth.signUp', async () => {
     function SignUpTest() {
       const { signUp } = useAuth();
-      React.useEffect(() => {
-        signUp('new@example.com', 'newpass123');
-      }, []);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      React.useEffect(() => { signUp('new@example.com', 'newpass123'); }, []);
       return null;
     }
 
@@ -108,9 +106,8 @@ describe('useAuth', () => {
   it('signOut calls supabase.auth.signOut', async () => {
     function SignOutTest() {
       const { signOut } = useAuth();
-      React.useEffect(() => {
-        signOut();
-      }, []);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      React.useEffect(() => { signOut(); }, []);
       return null;
     }
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator,
   Platform, Share, Alert,
@@ -29,7 +29,7 @@ export default function ListDetailScreen() {
   const [deleteListVisible, setDeleteListVisible] = useState(false);
   const keyboardHeight = useKeyboardHeight();
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     const [listRes, itemsRes, membersRes] = await Promise.all([
       supabase.from('shopping_lists').select('*').eq('id', id).single(),
       supabase.from('list_items').select('*').eq('list_id', id).order('position'),
@@ -40,7 +40,7 @@ export default function ListDetailScreen() {
     if (itemsRes.data) setItems(itemsRes.data);
     if (membersRes.data) setMembers(membersRes.data);
     setLoading(false);
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchData();
@@ -79,7 +79,7 @@ export default function ListDetailScreen() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [id]);
+  }, [id, fetchData]);
 
   useEffect(() => {
     if (isOnline && !wasOnlineRef.current) {
@@ -91,7 +91,7 @@ export default function ListDetailScreen() {
       });
     }
     wasOnlineRef.current = isOnline;
-  }, [isOnline]);
+  }, [isOnline, fetchData]);
 
   const toggleItem = async (item: ListItem) => {
     const previousItems = items;
@@ -236,7 +236,7 @@ export default function ListDetailScreen() {
         <View style={styles.offlineBanner}>
           <Ionicons name="cloud-offline-outline" size={16} color="#856404" />
           <Text style={styles.offlineBannerText}>
-            You're offline. Changes will sync when reconnected.
+            You&apos;re offline. Changes will sync when reconnected.
           </Text>
         </View>
       )}
