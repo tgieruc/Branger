@@ -52,7 +52,7 @@ describe('RecipeCard', () => {
     const { Link } = require('expo-router');
     render(<RecipeCard recipe={baseRecipe} />);
     const linkCall = Link.mock.calls.find(
-      (call: unknown[]) => call[0]?.href === '/(tabs)/recipes/recipe-1',
+      (call: any[]) => call[0]?.href === '/(tabs)/recipes/recipe-1',
     );
     expect(linkCall).toBeTruthy();
     expect(linkCall[0].asChild).toBe(true);
