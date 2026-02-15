@@ -42,7 +42,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     if (!url) return;
 
     const parsed = Linking.parse(url);
-    if (parsed.path === 'reset-password' && parsed.queryParams?.access_token) {
+    if (parsed.path === 'reset-password' && parsed.queryParams?.access_token && parsed.queryParams?.refresh_token) {
       router.replace({
         pathname: '/reset-password',
         params: {

@@ -107,6 +107,7 @@ export default function ResetPasswordScreen() {
           style={[styles.button, { backgroundColor: colors.primary }]}
           onPress={() => router.replace('/forgot-password')}
           accessibilityLabel="Request new reset link"
+          accessibilityRole="button"
         >
           <Text style={styles.buttonText}>Request New Link</Text>
         </TouchableOpacity>
@@ -143,6 +144,7 @@ export default function ResetPasswordScreen() {
         onPress={handleResetPassword}
         disabled={loading}
         accessibilityLabel="Reset password"
+        accessibilityRole="button"
       >
         <Text style={styles.buttonText}>{loading ? 'Resetting...' : 'Reset Password'}</Text>
       </TouchableOpacity>

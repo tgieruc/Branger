@@ -72,6 +72,7 @@ export default function ForgotPasswordScreen() {
         onPress={handleResetPassword}
         disabled={loading}
         accessibilityLabel="Send Reset Link"
+        accessibilityRole="button"
       >
         <Text style={styles.buttonText}>{loading ? 'Sending...' : 'Send Reset Link'}</Text>
       </TouchableOpacity>

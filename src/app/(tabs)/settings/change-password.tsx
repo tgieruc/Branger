@@ -26,11 +26,16 @@ export default function ChangePasswordScreen() {
       return;
     }
 
+    if (!user?.email) {
+      Alert.alert('Error', 'Unable to verify account. Please sign out and sign in again.');
+      return;
+    }
+
     setLoading(true);
 
     // Verify current password
     const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: user!.email!,
+      email: user.email,
       password: currentPassword,
     });
 
