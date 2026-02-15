@@ -15,6 +15,7 @@ import { supabase } from '@/lib/supabase';
 import { RecipeCard } from '@/components/RecipeCard';
 import { getCachedRecipeList, setCachedRecipeList } from '@/lib/cache';
 import { useColors } from '@/hooks/useColors';
+import { shadow } from '@/constants/theme';
 import type { Recipe } from '@/lib/types';
 
 const PAGE_SIZE = 20;
@@ -169,7 +170,7 @@ export default function RecipesScreen() {
       />
       <Link href="/(tabs)/recipes/create" asChild>
         <TouchableOpacity
-          style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.shadow }]}
+          style={StyleSheet.flatten([styles.fab, { backgroundColor: colors.primary }])}
           accessibilityLabel="Create new recipe"
           accessibilityRole="button"
         >
@@ -205,9 +206,6 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    ...shadow(2, 4, 0.25),
   },
 });

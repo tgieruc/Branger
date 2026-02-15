@@ -89,6 +89,19 @@ export const Colors = {
   },
 };
 
+export function shadow(offsetY: number, radius: number, opacity: number) {
+  if (Platform.OS === 'web') {
+    return { boxShadow: `0px ${offsetY}px ${radius}px rgba(0,0,0,${opacity})` } as any;
+  }
+  return {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: offsetY },
+    shadowOpacity: opacity,
+    shadowRadius: radius,
+    elevation: Math.round(offsetY * 2),
+  };
+}
+
 export const Fonts = Platform.select({
   ios: {
     /** iOS `UIFontDescriptorSystemDesignDefault` */

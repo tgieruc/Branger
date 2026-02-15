@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth';
 import { useTheme, type ThemePreference } from '@/lib/theme';
 import { useColors } from '@/hooks/useColors';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { shadow } from '@/constants/theme';
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: 'system', label: 'System' },
@@ -156,11 +157,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   segmentSelected: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    ...shadow(1, 2, 0.1),
   },
   segmentText: {
     fontSize: 14,

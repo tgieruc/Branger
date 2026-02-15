@@ -2,13 +2,14 @@ import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Link } from 'expo-router';
 import type { Recipe } from '@/lib/types';
 import { useColors } from '@/hooks/useColors';
+import { shadow } from '@/constants/theme';
 
 export function RecipeCard({ recipe }: { recipe: Recipe }) {
   const colors = useColors();
 
   return (
     <Link href={`/(tabs)/recipes/${recipe.id}`} asChild>
-      <TouchableOpacity style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.shadow }]}>
+      <TouchableOpacity style={StyleSheet.flatten([styles.card, { backgroundColor: colors.card }])}>
         {recipe.photo_url && (
           <Image source={{ uri: recipe.photo_url }} style={styles.image} />
         )}
@@ -30,10 +31,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginVertical: 6,
     overflow: 'hidden',
-    elevation: 2,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    ...shadow(1, 4, 0.1),
   },
   image: { width: 80, height: 80 },
   info: { flex: 1, padding: 12, justifyContent: 'center' },

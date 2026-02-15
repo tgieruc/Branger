@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/auth';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useColors } from '@/hooks/useColors';
+import { shadow } from '@/constants/theme';
 
 type ListSummary = {
   id: string;
@@ -136,7 +137,7 @@ export default function ListsScreen() {
         renderItem={({ item }) => (
           <View style={styles.cardRow}>
             <Link href={`/(tabs)/lists/${item.id}`} asChild style={{ flex: 1 }}>
-              <TouchableOpacity style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.shadow }]}>
+              <TouchableOpacity style={StyleSheet.flatten([styles.card, { backgroundColor: colors.card }])}>
                 <View style={styles.cardInfo}>
                   <Text style={[styles.cardTitle, { color: colors.text }]}>{item.name}</Text>
                   <Text style={[styles.cardSub, { color: colors.textTertiary }]}>
@@ -187,7 +188,7 @@ export default function ListsScreen() {
         </View>
       ) : (
         <TouchableOpacity
-          style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.shadow }]}
+          style={[styles.fab, { backgroundColor: colors.primary }]}
           onPress={() => setShowCreate(true)}
           accessibilityLabel="Create new list"
           accessibilityRole="button"
@@ -218,8 +219,7 @@ const styles = StyleSheet.create({
   card: {
     flex: 1, flexDirection: 'row', alignItems: 'center',
     padding: 16, borderRadius: 12,
-    elevation: 2, shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1, shadowRadius: 4,
+    ...shadow(1, 4, 0.1),
   },
   cardDelete: { padding: 12 },
   cardInfo: { flex: 1 },
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute', bottom: 24, right: 24, width: 56, height: 56,
     borderRadius: 28, justifyContent: 'center',
-    alignItems: 'center', elevation: 4,
-    shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4,
+    alignItems: 'center',
+    ...shadow(2, 4, 0.25),
   },
 });
