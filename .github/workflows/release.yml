@@ -26,12 +26,12 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Build APK via EAS
-        run: eas build --platform android --profile preview --non-interactive
+        run: |
+          eas build --platform android --profile preview --non-interactive --json > build-result.json
 
       - name: Download APK
         run: |
-          BUILD_URL=$(eas build:list --platform android --status finished --limit 1 --json \
-            | python3 -c "import sys,json; print(json.load(sys.stdin)[0]['artifacts']['buildUrl'])")
+          BUILD_URL=$(python3 -c "import json; print(json.load(open('build-result.json'))[0]['artifacts']['buildUrl'])")
           curl -L -o branger.apk "$BUILD_URL"
 
       - name: Create GitHub Release
