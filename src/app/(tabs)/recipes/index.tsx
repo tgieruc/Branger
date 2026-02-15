@@ -64,7 +64,11 @@ export default function RecipesScreen() {
         }
       />
       <Link href="/(tabs)/recipes/create" asChild>
-        <TouchableOpacity style={styles.fab}>
+        <TouchableOpacity
+          style={styles.fab}
+          accessibilityLabel="Create new recipe"
+          accessibilityRole="button"
+        >
           <Ionicons name="add" size={28} color="#fff" />
         </TouchableOpacity>
       </Link>
@@ -73,7 +77,7 @@ export default function RecipesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, backgroundColor: '#f5f5f5', maxWidth: 600, width: '100%', alignSelf: 'center' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   list: { paddingVertical: 8, paddingBottom: 80 },
   empty: { textAlign: 'center', marginTop: 48, color: '#888' },

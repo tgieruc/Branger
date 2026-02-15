@@ -51,6 +51,7 @@ Deno.serve(async (req) => {
       const token = authHeader.replace("Bearer ", "");
       await jose.jwtVerify(token, SUPABASE_JWT_KEYS, {
         issuer: SUPABASE_JWT_ISSUER,
+        audience: "authenticated",
       });
     } catch (e) {
       console.error("Auth failed:", e);
@@ -65,7 +66,14 @@ Deno.serve(async (req) => {
     if (!image_url || typeof image_url !== "string") {
       return new Response(JSON.stringify({ error: "image_url is required" }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    if (image_url.length > 2000) {
+      return new Response(JSON.stringify({ error: "image_url is too long. Maximum 2,000 characters." }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 

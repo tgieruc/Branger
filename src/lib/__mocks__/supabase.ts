@@ -1,5 +1,6 @@
 const mockAuth = {
   getSession: jest.fn().mockResolvedValue({ data: { session: null }, error: null }),
+  refreshSession: jest.fn().mockResolvedValue({ data: { session: null }, error: null }),
   signUp: jest.fn().mockResolvedValue({ data: {}, error: null }),
   signInWithPassword: jest.fn().mockResolvedValue({ data: {}, error: null }),
   signOut: jest.fn().mockResolvedValue({ error: null }),

@@ -325,7 +325,7 @@ export default function CreateRecipeScreen() {
                 <Text style={styles.addText}>Add step</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={saving}>
+              <TouchableOpacity style={[styles.saveButton, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
                 <Text style={styles.saveText}>{saving ? 'Saving...' : 'Save Recipe'}</Text>
               </TouchableOpacity>
             </>
@@ -337,7 +337,7 @@ export default function CreateRecipeScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff', maxWidth: 600, width: '100%', alignSelf: 'center' },
   content: { padding: 16, paddingBottom: 48 },
   modeRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   modeButton: {

@@ -101,9 +101,13 @@ export default function SharedRecipeScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>{recipe.title}</Text>
 
-      {user && (
+      {user ? (
         <TouchableOpacity style={styles.saveButton} onPress={handleSaveCopy}>
           <Text style={styles.saveText}>Save to My Recipes</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity style={styles.signInButton} onPress={() => router.push('/login')}>
+          <Text style={styles.signInText}>Sign in to save this recipe</Text>
         </TouchableOpacity>
       )}
 
@@ -127,7 +131,7 @@ export default function SharedRecipeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff', maxWidth: 600, width: '100%', alignSelf: 'center' },
   content: { padding: 16, paddingBottom: 48 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 16 },
@@ -135,6 +139,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#34c759', borderRadius: 8, padding: 14, alignItems: 'center', marginBottom: 24,
   },
   saveText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  signInButton: {
+    backgroundColor: '#007AFF', borderRadius: 8, padding: 14, alignItems: 'center', marginBottom: 24,
+  },
+  signInText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   section: { fontSize: 18, fontWeight: '600', marginTop: 16, marginBottom: 8 },
   ingredientRow: { flexDirection: 'row', paddingVertical: 6 },
   ingredientName: { fontSize: 15, fontWeight: '500', marginRight: 8 },

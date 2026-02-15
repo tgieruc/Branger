@@ -55,7 +55,7 @@ export default function RegisterScreen() {
         onChangeText={setConfirmPassword}
         secureTextEntry
       />
-      <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={loading}>
+      <TouchableOpacity style={[styles.button, loading && { opacity: 0.6 }]} onPress={handleRegister} disabled={loading}>
         <Text style={styles.buttonText}>{loading ? 'Creating...' : 'Create Account'}</Text>
       </TouchableOpacity>
       <Link href="/login" style={styles.link}>
@@ -66,7 +66,7 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24 },
+  container: { flex: 1, justifyContent: 'center', padding: 24, maxWidth: 600, width: '100%', alignSelf: 'center' },
   title: { fontSize: 32, fontWeight: 'bold', textAlign: 'center', marginBottom: 48 },
   input: {
     borderWidth: 1, borderColor: '#ccc', borderRadius: 8,

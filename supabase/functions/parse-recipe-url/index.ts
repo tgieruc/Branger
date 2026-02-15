@@ -41,6 +41,81 @@ function extractTextFromHtml(html: string): string {
   return text.slice(0, 8000);
 }
 
+// SSRF protection: check if an IPv4 address is private/internal
+function isPrivateIP(ip: string): boolean {
+  const parts = ip.split(".").map(Number);
+  if (parts.length !== 4 || parts.some((p) => isNaN(p) || p < 0 || p > 255)) return false;
+  return (
+    parts[0] === 127 ||
+    parts[0] === 10 ||
+    (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
+    (parts[0] === 192 && parts[1] === 168) ||
+    (parts[0] === 169 && parts[1] === 254) ||
+    parts[0] === 0
+  );
+}
+
+// SSRF protection: validate URL with DNS resolution check
+async function validateUrl(url: string): Promise<URL> {
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    throw new Error("Invalid URL format");
+  }
+
+  if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+    throw new Error("Only HTTP/HTTPS URLs are allowed");
+  }
+
+  const hostname = parsedUrl.hostname;
+
+  // Block localhost
+  if (/^localhost$/i.test(hostname)) {
+    throw new Error("URL points to a private/internal address");
+  }
+
+  // Block IPv6 addresses
+  if (hostname.startsWith("[")) {
+    throw new Error("IPv6 addresses are not allowed");
+  }
+
+  // Check direct IPv4 addresses
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname)) {
+    if (isPrivateIP(hostname)) {
+      throw new Error("URL points to a private/internal address");
+    }
+    return parsedUrl;
+  }
+
+  // Block known DNS rebinding services
+  const rebindingDomains = [".nip.io", ".sslip.io", ".xip.io", ".localtest.me", ".lvh.me"];
+  if (rebindingDomains.some((d) => hostname.toLowerCase().endsWith(d))) {
+    throw new Error("URL points to a disallowed domain");
+  }
+
+  // Resolve DNS via DNS-over-HTTPS and check for private IPs
+  try {
+    const dnsRes = await fetch(
+      `https://dns.google/resolve?name=${encodeURIComponent(hostname)}&type=A`,
+      { headers: { Accept: "application/dns-json" } },
+    );
+    const dnsData = await dnsRes.json();
+    const ips: string[] = (dnsData.Answer || [])
+      .filter((a: { type: number }) => a.type === 1)
+      .map((a: { data: string }) => a.data);
+
+    if (ips.length > 0 && ips.every((ip: string) => isPrivateIP(ip))) {
+      throw new Error("URL resolves to a private/internal address");
+    }
+  } catch (e) {
+    if (e instanceof Error && e.message.includes("private")) throw e;
+    // DNS-over-HTTPS unavailable: fall through with hostname-only validation
+  }
+
+  return parsedUrl;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -60,6 +135,7 @@ Deno.serve(async (req) => {
       const token = authHeader.replace("Bearer ", "");
       await jose.jwtVerify(token, SUPABASE_JWT_KEYS, {
         issuer: SUPABASE_JWT_ISSUER,
+        audience: "authenticated",
       });
     } catch (e) {
       console.error("Auth failed:", e);
@@ -74,53 +150,43 @@ Deno.serve(async (req) => {
     if (!url || typeof url !== "string") {
       return new Response(JSON.stringify({ error: "url is required" }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    // SSRF protection: validate URL
-    let parsedUrl: URL;
+    // SSRF protection: validate URL and resolve DNS
     try {
-      parsedUrl = new URL(url);
-    } catch {
-      return new Response(JSON.stringify({ error: 'Invalid URL format' }), {
+      await validateUrl(url);
+    } catch (e) {
+      return new Response(JSON.stringify({ error: (e as Error).message }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      });
-    }
-
-    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-      return new Response(JSON.stringify({ error: 'Only HTTP/HTTPS URLs are allowed' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      });
-    }
-
-    // Block private/internal IPs
-    const hostname = parsedUrl.hostname;
-    const blockedPatterns = [
-      /^localhost$/i,
-      /^127\./,
-      /^10\./,
-      /^172\.(1[6-9]|2\d|3[01])\./,
-      /^192\.168\./,
-      /^169\.254\./,
-      /^0\./,
-      /^\[::1\]$/,
-      /^\[fd/i,
-      /^\[fe80:/i,
-    ];
-    if (blockedPatterns.some(p => p.test(hostname))) {
-      return new Response(JSON.stringify({ error: 'URL points to a private/internal address' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
     // Fetch the webpage
     const pageResponse = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; RecipeParser/1.0)" },
+      redirect: "follow",
     });
+
+    // Verify the final URL (after redirects) is not private
+    try {
+      await validateUrl(pageResponse.url);
+    } catch {
+      return new Response(JSON.stringify({ error: "URL redirected to a disallowed address" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    if (!pageResponse.ok) {
+      return new Response(JSON.stringify({ error: `Failed to fetch URL (HTTP ${pageResponse.status})` }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
     const html = await pageResponse.text();
     const pageText = extractTextFromHtml(html);
 

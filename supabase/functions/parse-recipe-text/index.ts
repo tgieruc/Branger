@@ -50,6 +50,7 @@ Deno.serve(async (req) => {
       const token = authHeader.replace("Bearer ", "");
       await jose.jwtVerify(token, SUPABASE_JWT_KEYS, {
         issuer: SUPABASE_JWT_ISSUER,
+        audience: "authenticated",
       });
     } catch (e) {
       console.error("Auth failed:", e);
@@ -64,7 +65,14 @@ Deno.serve(async (req) => {
     if (!text || typeof text !== "string") {
       return new Response(JSON.stringify({ error: "text is required" }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    if (text.length > 10000) {
+      return new Response(JSON.stringify({ error: "Text is too long. Maximum 10,000 characters." }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 

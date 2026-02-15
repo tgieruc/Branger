@@ -155,10 +155,10 @@ export default function RecipeDetailScreen() {
           title: recipe.title,
           headerRight: () => (
             <View style={styles.headerRight}>
-              <TouchableOpacity onPress={handleShare} style={styles.headerBtn}>
+              <TouchableOpacity onPress={handleShare} style={styles.headerBtn} accessibilityLabel="Share recipe" accessibilityRole="button">
                 <Ionicons name="share-outline" size={22} color="#007AFF" />
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleDelete} style={styles.headerBtn}>
+              <TouchableOpacity onPress={handleDelete} style={styles.headerBtn} accessibilityLabel="Delete recipe" accessibilityRole="button">
                 <Ionicons name="trash-outline" size={22} color="#ff3b30" />
               </TouchableOpacity>
             </View>
@@ -170,7 +170,7 @@ export default function RecipeDetailScreen() {
           <Image source={{ uri: recipe.photo_url }} style={styles.image} />
         )}
 
-        <TouchableOpacity onPress={handleAddToList} style={styles.addToListButton}>
+        <TouchableOpacity onPress={handleAddToList} style={styles.addToListButton} accessibilityLabel="Add ingredients to shopping list" accessibilityRole="button">
           <Ionicons name="cart-outline" size={20} color="#007AFF" />
           <Text style={styles.addToListText}>Add to Shopping List</Text>
         </TouchableOpacity>
@@ -233,7 +233,7 @@ export default function RecipeDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff', maxWidth: 600, width: '100%', alignSelf: 'center' },
   content: { paddingBottom: 48 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   headerRight: { flexDirection: 'row', gap: 16, marginRight: 4 },

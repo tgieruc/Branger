@@ -148,6 +148,8 @@ export default function ListsScreen() {
               style={styles.cardDelete}
               onPress={() => setDeleteListId(item.id)}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityLabel="Delete list"
+              accessibilityRole="button"
             >
               <Ionicons name="trash-outline" size={20} color="#ff3b30" />
             </TouchableOpacity>
@@ -184,6 +186,8 @@ export default function ListsScreen() {
         <TouchableOpacity
           style={styles.fab}
           onPress={() => setShowCreate(true)}
+          accessibilityLabel="Create new list"
+          accessibilityRole="button"
         >
           <Ionicons name="add" size={28} color="#fff" />
         </TouchableOpacity>
@@ -201,7 +205,7 @@ export default function ListsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, backgroundColor: '#f5f5f5', maxWidth: 600, width: '100%', alignSelf: 'center' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   list: { paddingVertical: 8, paddingBottom: 80 },
   empty: { textAlign: 'center', marginTop: 48, color: '#888' },

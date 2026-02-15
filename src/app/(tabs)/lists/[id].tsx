@@ -44,12 +44,33 @@ export default function ListDetailScreen() {
     const channel = supabase
       .channel(`list-${id}`)
       .on('postgres_changes', {
-        event: '*',
+        event: 'INSERT',
         schema: 'public',
         table: 'list_items',
         filter: `list_id=eq.${id}`,
-      }, () => {
-        fetchData();
+      }, (payload) => {
+        setItems((prev) => {
+          if (prev.some(i => i.id === payload.new.id)) return prev;
+          return [...prev, payload.new as ListItem];
+        });
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'list_items',
+        filter: `list_id=eq.${id}`,
+      }, (payload) => {
+        setItems((prev) => prev.map(i =>
+          i.id === payload.new.id ? (payload.new as ListItem) : i
+        ));
+      })
+      .on('postgres_changes', {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'list_items',
+        filter: `list_id=eq.${id}`,
+      }, (payload) => {
+        setItems((prev) => prev.filter(i => i.id !== payload.old.id));
       })
       .subscribe();
 
@@ -159,10 +180,10 @@ export default function ListDetailScreen() {
           title: list?.name ?? 'List',
           headerRight: () => (
             <View style={styles.headerRight}>
-              <TouchableOpacity onPress={handleShareList} style={styles.headerBtn}>
+              <TouchableOpacity onPress={handleShareList} style={styles.headerBtn} accessibilityLabel="Share list" accessibilityRole="button">
                 <Ionicons name="share-outline" size={22} color="#007AFF" />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => setDeleteListVisible(true)} style={styles.headerBtn}>
+              <TouchableOpacity onPress={() => setDeleteListVisible(true)} style={styles.headerBtn} accessibilityLabel="Delete list" accessibilityRole="button">
                 <Ionicons name="trash-outline" size={22} color="#ff3b30" />
               </TouchableOpacity>
             </View>
@@ -259,7 +280,7 @@ export default function ListDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff', maxWidth: 600, width: '100%', alignSelf: 'center' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   headerRight: { flexDirection: 'row', gap: 16, marginRight: 4 },
   headerBtn: { padding: 4 },
