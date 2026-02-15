@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert,
   ActivityIndicator, Image,
@@ -26,11 +26,7 @@ export default function EditRecipeScreen() {
   const [steps, setSteps] = useState<Step[]>([{ instruction: '' }]);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchRecipe();
-  }, [id]);
-
-  const fetchRecipe = async () => {
+  const fetchRecipe = useCallback(async () => {
     const [recipeRes, ingredientsRes, stepsRes] = await Promise.all([
       supabase.from('recipes').select('*').eq('id', id!).single(),
       supabase.from('recipe_ingredients').select('*').eq('recipe_id', id!).order('position'),
@@ -58,7 +54,11 @@ export default function EditRecipeScreen() {
     setSteps(stps.length > 0 ? stps : [{ instruction: '' }]);
 
     setLoading(false);
-  };
+  }, [id, router]);
+
+  useEffect(() => {
+    fetchRecipe();
+  }, [fetchRecipe]);
 
   // --- Photo helpers ---
   const processPhotoResult = async (result: ImagePicker.ImagePickerResult) => {

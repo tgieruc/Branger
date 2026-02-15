@@ -27,7 +27,7 @@ export default function ListsScreen() {
   const [deleteListId, setDeleteListId] = useState<string | null>(null);
   const keyboardHeight = useKeyboardHeight();
 
-  const fetchLists = async () => {
+  const fetchLists = useCallback(async () => {
     if (!user) { setLoading(false); return; }
 
     const { data: memberships } = await supabase
@@ -78,7 +78,7 @@ export default function ListsScreen() {
 
     setLists(summaries);
     setLoading(false);
-  };
+  }, [user]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -88,7 +88,7 @@ export default function ListsScreen() {
 
   useFocusEffect(useCallback(() => {
     fetchLists();
-  }, []));
+  }, [fetchLists]));
 
   const handleCreate = async () => {
     if (!newName.trim()) return;

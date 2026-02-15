@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform,
+  Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Link } from 'expo-router';
 import { useAuth } from '@/lib/auth';
@@ -43,7 +43,7 @@ export default function LoginScreen() {
         <Text style={styles.buttonText}>{loading ? 'Signing in...' : 'Sign In'}</Text>
       </TouchableOpacity>
       <Link href="/register" style={styles.link}>
-        Don't have an account? Sign Up
+        Don&apos;t have an account? Sign Up
       </Link>
     </KeyboardAvoidingView>
   );

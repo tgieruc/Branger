@@ -1,2 +1,3 @@
 npx tsc --noEmit
+npx expo lint
 npm test

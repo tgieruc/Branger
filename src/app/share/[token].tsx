@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, ActivityIndicator,
 } from 'react-native';
@@ -14,11 +14,7 @@ export default function SharedRecipeScreen() {
   const [recipe, setRecipe] = useState<RecipeWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchSharedRecipe();
-  }, [token]);
-
-  const fetchSharedRecipe = async () => {
+  const fetchSharedRecipe = useCallback(async () => {
     const { data, error } = await supabase.rpc('get_shared_recipe', { p_token: token });
 
     if (error || !data || typeof data !== 'object' || Array.isArray(data)) {
@@ -33,7 +29,11 @@ export default function SharedRecipeScreen() {
       steps: d.steps ?? [],
     } as RecipeWithDetails);
     setLoading(false);
-  };
+  }, [token]);
+
+  useEffect(() => {
+    fetchSharedRecipe();
+  }, [fetchSharedRecipe]);
 
   const handleSaveCopy = async () => {
     if (!user || !recipe) {

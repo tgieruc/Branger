@@ -34,7 +34,9 @@ jest.mock('@/lib/cache', () => ({
 jest.mock('expo-router', () => ({
   Link: jest.fn().mockImplementation(({ children }) => children),
   useFocusEffect: (cb: () => void) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { useEffect } = require('react');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => { cb(); }, []);
   },
 }));
@@ -43,6 +45,7 @@ jest.mock('@expo/vector-icons', () => ({
 }));
 jest.mock('@/components/RecipeCard', () => ({
   RecipeCard: ({ recipe }: { recipe: Recipe }) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { Text } = require('react-native');
     return <Text>{recipe.title}</Text>;
   },
@@ -84,6 +87,7 @@ describe('RecipesScreen', () => {
     rpcMock.mockReturnValue(new Promise(() => {}));
 
     const { UNSAFE_getByType } = render(<RecipesScreen />);
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { ActivityIndicator } = require('react-native');
     expect(UNSAFE_getByType(ActivityIndicator)).toBeTruthy();
   });

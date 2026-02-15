@@ -19,7 +19,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     } else if (session && !inAuthGroup && !inPublicRoute) {
       router.replace('/(tabs)/recipes');
     }
-  }, [session, loading, segments]);
+  }, [session, loading, segments, router]);
 
   if (loading) return null;
 
