@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
 
-export default function ListsLayout() {
+export default function SettingsLayout() {
   const colors = useColors();
 
   return (
@@ -11,8 +11,7 @@ export default function ListsLayout() {
         headerTintColor: colors.headerText,
       }}
     >
-      <Stack.Screen name="index" options={{ title: 'Shopping Lists' }} />
-      <Stack.Screen name="[id]" options={{ title: 'List' }} />
+      <Stack.Screen name="index" options={{ title: 'Settings' }} />
     </Stack>
   );
 }

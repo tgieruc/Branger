@@ -12,11 +12,13 @@ import { enqueue, replayQueue } from '@/lib/offline-queue';
 import type { ShoppingList, ListItem, ListMember } from '@/lib/types';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { useColors } from '@/hooks/useColors';
 
 export default function ListDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
+  const colors = useColors();
   const isOnline = useIsOnline();
   const wasOnlineRef = useRef(isOnline);
   const [list, setList] = useState<ShoppingList | null>(null);
@@ -215,17 +217,17 @@ export default function ListDetailScreen() {
   const checkedCount = items.filter((i) => i.checked).length;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
           title: list?.name ?? 'List',
           headerRight: () => (
             <View style={styles.headerRight}>
               <TouchableOpacity onPress={handleShareList} style={styles.headerBtn} accessibilityLabel="Share list" accessibilityRole="button">
-                <Ionicons name="share-outline" size={22} color="#007AFF" />
+                <Ionicons name="share-outline" size={22} color={colors.primary} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setDeleteListVisible(true)} style={styles.headerBtn} accessibilityLabel="Delete list" accessibilityRole="button">
-                <Ionicons name="trash-outline" size={22} color="#ff3b30" />
+                <Ionicons name="trash-outline" size={22} color={colors.danger} />
               </TouchableOpacity>
             </View>
           ),
@@ -233,9 +235,9 @@ export default function ListDetailScreen() {
       />
 
       {!isOnline && (
-        <View style={styles.offlineBanner}>
-          <Ionicons name="cloud-offline-outline" size={16} color="#856404" />
-          <Text style={styles.offlineBannerText}>
+        <View style={[styles.offlineBanner, { backgroundColor: colors.offlineBannerBg }]}>
+          <Ionicons name="cloud-offline-outline" size={16} color={colors.offlineBannerText} />
+          <Text style={[styles.offlineBannerText, { color: colors.offlineBannerText }]}>
             You&apos;re offline. Changes will sync when reconnected.
           </Text>
         </View>
@@ -248,20 +250,20 @@ export default function ListDetailScreen() {
         keyboardDismissMode="interactive"
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={styles.itemRow}
+            style={[styles.itemRow, { borderBottomColor: colors.borderLight }]}
             onPress={() => toggleItem(item)}
           >
             <Ionicons
               name={item.checked ? 'checkbox' : 'square-outline'}
               size={24}
-              color={item.checked ? '#34c759' : '#ccc'}
+              color={item.checked ? colors.success : colors.border}
             />
             <View style={styles.itemInfo}>
-              <Text style={[styles.itemName, item.checked && styles.checkedText]}>
+              <Text style={[styles.itemName, { color: colors.text }, item.checked && { textDecorationLine: 'line-through', color: colors.checkedText }]}>
                 {item.name}
               </Text>
               {item.description ? (
-                <Text style={[styles.itemDesc, item.checked && styles.checkedText]}>
+                <Text style={[styles.itemDesc, { color: colors.textTertiary }, item.checked && { textDecorationLine: 'line-through', color: colors.checkedText }]}>
                   {item.description}
                 </Text>
               ) : null}
@@ -271,14 +273,14 @@ export default function ListDetailScreen() {
               style={styles.deleteButton}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="close-circle-outline" size={20} color="#ccc" />
+              <Ionicons name="close-circle-outline" size={20} color={colors.border} />
             </TouchableOpacity>
           </TouchableOpacity>
         )}
         ListFooterComponent={
           checkedCount > 0 ? (
             <TouchableOpacity onPress={clearChecked} style={styles.clearChecked}>
-              <Text style={styles.clearCheckedText}>
+              <Text style={[styles.clearCheckedText, { color: colors.danger }]}>
                 Clear {checkedCount} checked item{checkedCount !== 1 ? 's' : ''}
               </Text>
             </TouchableOpacity>
@@ -286,23 +288,25 @@ export default function ListDetailScreen() {
         }
       />
 
-      <View style={[styles.addRow, { marginBottom: keyboardHeight }]}>
+      <View style={[styles.addRow, { marginBottom: keyboardHeight, backgroundColor: colors.inputAreaBg, borderTopColor: colors.borderLight }]}>
         <TextInput
-          style={[styles.addInput, { flex: 2 }]}
+          style={[styles.addInput, { flex: 2, borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]}
           placeholder="Item name"
+          placeholderTextColor={colors.placeholder}
           value={newItemName}
           onChangeText={setNewItemName}
           onSubmitEditing={addItem}
         />
         <TextInput
-          style={[styles.addInput, { flex: 1, marginLeft: 8 }]}
+          style={[styles.addInput, { flex: 1, marginLeft: 8, borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]}
           placeholder="Amount"
+          placeholderTextColor={colors.placeholder}
           value={newItemDesc}
           onChangeText={setNewItemDesc}
           onSubmitEditing={addItem}
         />
         <TouchableOpacity onPress={addItem} style={styles.addButton}>
-          <Ionicons name="add-circle" size={36} color="#007AFF" />
+          <Ionicons name="add-circle" size={36} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -330,33 +334,31 @@ export default function ListDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', maxWidth: 600, width: '100%', alignSelf: 'center' },
+  container: { flex: 1, maxWidth: 600, width: '100%', alignSelf: 'center' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   headerRight: { flexDirection: 'row', gap: 16, marginRight: 4 },
   headerBtn: { padding: 4 },
   itemRow: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16,
     paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#eee',
   },
   itemInfo: { marginLeft: 12, flex: 1 },
   itemName: { fontSize: 16 },
-  itemDesc: { fontSize: 13, color: '#888', marginTop: 2 },
-  checkedText: { textDecorationLine: 'line-through', color: '#bbb' },
+  itemDesc: { fontSize: 13, marginTop: 2 },
   deleteButton: { padding: 4 },
   clearChecked: { paddingVertical: 14, alignItems: 'center' },
-  clearCheckedText: { fontSize: 14, color: '#ff3b30' },
+  clearCheckedText: { fontSize: 14 },
   addRow: {
     flexDirection: 'row', alignItems: 'center', padding: 12,
-    borderTopWidth: 1, borderTopColor: '#eee', backgroundColor: '#fafafa',
+    borderTopWidth: 1,
   },
   addInput: {
-    borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, fontSize: 15,
+    borderWidth: 1, borderRadius: 8, padding: 10, fontSize: 15,
   },
   addButton: { marginLeft: 8 },
   offlineBanner: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#fff3cd', paddingVertical: 8, paddingHorizontal: 16, gap: 8,
+    paddingVertical: 8, paddingHorizontal: 16, gap: 8,
   },
-  offlineBannerText: { fontSize: 13, color: '#856404' },
+  offlineBannerText: { fontSize: 13 },
 });

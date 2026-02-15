@@ -224,6 +224,12 @@ export type Database = {
         }
         Returns: string
       }
+      join_list: {
+        Args: {
+          p_list_id: string
+        }
+        Returns: undefined
+      }
       get_shared_recipe: {
         Args: {
           p_token: string

@@ -54,7 +54,8 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-updates"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -67,6 +68,12 @@
       "eas": {
         "projectId": "4e922900-923e-4343-805c-2c29fa6f692f"
       }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/4e922900-923e-4343-805c-2c29fa6f692f"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     },
     "owner": "bdw2"
   }

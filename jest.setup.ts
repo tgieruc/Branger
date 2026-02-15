@@ -53,3 +53,13 @@ jest.mock('expo-haptics', () => ({
 jest.mock('expo-image', () => ({
   Image: 'Image',
 }));
+
+// Mock theme provider
+jest.mock('@/lib/theme', () => ({
+  useTheme: jest.fn().mockReturnValue({
+    preference: 'system',
+    setPreference: jest.fn(),
+    colorScheme: 'light',
+  }),
+  ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
+}));

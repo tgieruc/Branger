@@ -6,11 +6,13 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import type { RecipeWithDetails } from '@/lib/types';
+import { useColors } from '@/hooks/useColors';
 
 export default function SharedRecipeScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
   const { user } = useAuth();
   const router = useRouter();
+  const colors = useColors();
   const [recipe, setRecipe] = useState<RecipeWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -94,36 +96,36 @@ export default function SharedRecipeScreen() {
   }
 
   if (!recipe) {
-    return <View style={styles.center}><Text>Recipe not found or link expired.</Text></View>;
+    return <View style={styles.center}><Text style={{ color: colors.text }}>Recipe not found or link expired.</Text></View>;
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>{recipe.title}</Text>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
+      <Text style={[styles.title, { color: colors.text }]}>{recipe.title}</Text>
 
       {user ? (
-        <TouchableOpacity style={styles.saveButton} onPress={handleSaveCopy}>
-          <Text style={styles.saveText}>Save to My Recipes</Text>
+        <TouchableOpacity style={[styles.saveButton, { backgroundColor: colors.success }]} onPress={handleSaveCopy}>
+          <Text style={[styles.saveText, { color: colors.buttonText }]}>Save to My Recipes</Text>
         </TouchableOpacity>
       ) : (
-        <TouchableOpacity style={styles.signInButton} onPress={() => router.push('/login')}>
-          <Text style={styles.signInText}>Sign in to save this recipe</Text>
+        <TouchableOpacity style={[styles.signInButton, { backgroundColor: colors.primary }]} onPress={() => router.push('/login')}>
+          <Text style={[styles.signInText, { color: colors.buttonText }]}>Sign in to save this recipe</Text>
         </TouchableOpacity>
       )}
 
-      <Text style={styles.section}>Ingredients</Text>
+      <Text style={[styles.section, { color: colors.text }]}>Ingredients</Text>
       {recipe.ingredients.map((ing) => (
         <View key={ing.id} style={styles.ingredientRow}>
-          <Text style={styles.ingredientName}>{ing.name}</Text>
-          <Text style={styles.ingredientDesc}>{ing.description}</Text>
+          <Text style={[styles.ingredientName, { color: colors.text }]}>{ing.name}</Text>
+          <Text style={[styles.ingredientDesc, { color: colors.textSecondary }]}>{ing.description}</Text>
         </View>
       ))}
 
-      <Text style={styles.section}>Steps</Text>
+      <Text style={[styles.section, { color: colors.text }]}>Steps</Text>
       {recipe.steps.map((step) => (
         <View key={step.id} style={styles.stepRow}>
-          <Text style={styles.stepNum}>{step.step_number}.</Text>
-          <Text style={styles.stepText}>{step.instruction}</Text>
+          <Text style={[styles.stepNum, { color: colors.text }]}>{step.step_number}.</Text>
+          <Text style={[styles.stepText, { color: colors.text }]}>{step.instruction}</Text>
         </View>
       ))}
     </ScrollView>
@@ -131,22 +133,22 @@ export default function SharedRecipeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', maxWidth: 600, width: '100%', alignSelf: 'center' },
+  container: { flex: 1, maxWidth: 600, width: '100%', alignSelf: 'center' },
   content: { padding: 16, paddingBottom: 48 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 16 },
   saveButton: {
-    backgroundColor: '#34c759', borderRadius: 8, padding: 14, alignItems: 'center', marginBottom: 24,
+    borderRadius: 8, padding: 14, alignItems: 'center', marginBottom: 24,
   },
-  saveText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  saveText: { fontSize: 16, fontWeight: '600' },
   signInButton: {
-    backgroundColor: '#007AFF', borderRadius: 8, padding: 14, alignItems: 'center', marginBottom: 24,
+    borderRadius: 8, padding: 14, alignItems: 'center', marginBottom: 24,
   },
-  signInText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  signInText: { fontSize: 16, fontWeight: '600' },
   section: { fontSize: 18, fontWeight: '600', marginTop: 16, marginBottom: 8 },
   ingredientRow: { flexDirection: 'row', paddingVertical: 6 },
   ingredientName: { fontSize: 15, fontWeight: '500', marginRight: 8 },
-  ingredientDesc: { fontSize: 15, color: '#666' },
+  ingredientDesc: { fontSize: 15 },
   stepRow: { flexDirection: 'row', paddingVertical: 6 },
   stepNum: { fontSize: 15, fontWeight: '600', marginRight: 8, width: 24 },
   stepText: { fontSize: 15, flex: 1 },

@@ -9,6 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
+import { useColors } from '@/hooks/useColors';
 
 type Ingredient = { name: string; description: string };
 type Step = { instruction: string };
@@ -17,6 +18,7 @@ export default function EditRecipeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
+  const colors = useColors();
   const keyboardHeight = useKeyboardHeight();
 
   const [loading, setLoading] = useState(true);
@@ -226,7 +228,7 @@ export default function EditRecipeScreen() {
   return (
     <View style={styles.flex}>
       <ScrollView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={[styles.content, { paddingBottom: 48 + keyboardHeight }]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
@@ -237,57 +239,57 @@ export default function EditRecipeScreen() {
             <Image source={{ uri: photoUrl }} style={styles.photoPreview} />
             <View style={styles.photoActions}>
               <TouchableOpacity onPress={handleChangePhoto} style={styles.photoActionBtn} accessibilityLabel="Change photo" accessibilityRole="button">
-                <Ionicons name="camera-outline" size={18} color="#007AFF" />
-                <Text style={styles.photoActionText}>Change Photo</Text>
+                <Ionicons name="camera-outline" size={18} color={colors.primary} />
+                <Text style={[styles.photoActionText, { color: colors.primary }]}>Change Photo</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleRemovePhoto} style={styles.photoActionBtn} accessibilityLabel="Remove photo" accessibilityRole="button">
-                <Ionicons name="trash-outline" size={18} color="#ff3b30" />
-                <Text style={[styles.photoActionText, { color: '#ff3b30' }]}>Remove Photo</Text>
+                <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                <Text style={[styles.photoActionText, { color: colors.danger }]}>Remove Photo</Text>
               </TouchableOpacity>
             </View>
           </View>
         ) : (
-          <TouchableOpacity onPress={handleChangePhoto} style={styles.addPhotoButton} accessibilityLabel="Add photo" accessibilityRole="button">
-            <Ionicons name="camera-outline" size={24} color="#007AFF" />
-            <Text style={styles.addPhotoText}>Add Photo</Text>
+          <TouchableOpacity onPress={handleChangePhoto} style={[styles.addPhotoButton, { borderColor: colors.inputBorder }]} accessibilityLabel="Add photo" accessibilityRole="button">
+            <Ionicons name="camera-outline" size={24} color={colors.primary} />
+            <Text style={[styles.addPhotoText, { color: colors.primary }]}>Add Photo</Text>
           </TouchableOpacity>
         )}
 
-        <Text style={styles.label}>Title</Text>
-        <TextInput style={styles.input} placeholder="Recipe title" value={title} onChangeText={setTitle} />
+        <Text style={[styles.label, { color: colors.text }]}>Title</Text>
+        <TextInput style={[styles.input, { borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]} placeholder="Recipe title" placeholderTextColor={colors.placeholder} value={title} onChangeText={setTitle} />
 
-        <Text style={styles.label}>Ingredients</Text>
+        <Text style={[styles.label, { color: colors.text }]}>Ingredients</Text>
         {ingredients.map((ing, i) => (
           <View key={i} style={styles.row}>
-            <TextInput style={[styles.input, { flex: 1, marginRight: 8 }]} placeholder="Item" value={ing.name} onChangeText={(v) => updateIngredient(i, 'name', v)} />
-            <TextInput style={[styles.input, { flex: 1, marginRight: 8 }]} placeholder="Qty / notes" value={ing.description} onChangeText={(v) => updateIngredient(i, 'description', v)} />
+            <TextInput style={[styles.input, { flex: 1, marginRight: 8, borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]} placeholder="Item" placeholderTextColor={colors.placeholder} value={ing.name} onChangeText={(v) => updateIngredient(i, 'name', v)} />
+            <TextInput style={[styles.input, { flex: 1, marginRight: 8, borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]} placeholder="Qty / notes" placeholderTextColor={colors.placeholder} value={ing.description} onChangeText={(v) => updateIngredient(i, 'description', v)} />
             <TouchableOpacity onPress={() => removeIngredient(i)} accessibilityLabel="Remove ingredient" accessibilityRole="button">
-              <Ionicons name="close-circle" size={24} color="#ff3b30" />
+              <Ionicons name="close-circle" size={24} color={colors.danger} />
             </TouchableOpacity>
           </View>
         ))}
         <TouchableOpacity onPress={addIngredient} style={styles.addRow} accessibilityLabel="Add ingredient" accessibilityRole="button">
-          <Ionicons name="add-circle-outline" size={20} color="#007AFF" />
-          <Text style={styles.addText}>Add ingredient</Text>
+          <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+          <Text style={[styles.addText, { color: colors.primary }]}>Add ingredient</Text>
         </TouchableOpacity>
 
-        <Text style={styles.label}>Steps</Text>
+        <Text style={[styles.label, { color: colors.text }]}>Steps</Text>
         {steps.map((step, i) => (
           <View key={i} style={styles.row}>
-            <Text style={styles.stepNumber}>{i + 1}.</Text>
-            <TextInput style={[styles.input, { flex: 1, marginRight: 8 }]} placeholder="Instruction" value={step.instruction} onChangeText={(v) => updateStep(i, v)} multiline />
+            <Text style={[styles.stepNumber, { color: colors.text }]}>{i + 1}.</Text>
+            <TextInput style={[styles.input, { flex: 1, marginRight: 8, borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]} placeholder="Instruction" placeholderTextColor={colors.placeholder} value={step.instruction} onChangeText={(v) => updateStep(i, v)} multiline />
             <TouchableOpacity onPress={() => removeStep(i)} accessibilityLabel="Remove step" accessibilityRole="button">
-              <Ionicons name="close-circle" size={24} color="#ff3b30" />
+              <Ionicons name="close-circle" size={24} color={colors.danger} />
             </TouchableOpacity>
           </View>
         ))}
         <TouchableOpacity onPress={addStep} style={styles.addRow} accessibilityLabel="Add step" accessibilityRole="button">
-          <Ionicons name="add-circle-outline" size={20} color="#007AFF" />
-          <Text style={styles.addText}>Add step</Text>
+          <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+          <Text style={[styles.addText, { color: colors.primary }]}>Add step</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.saveButton, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving} accessibilityLabel="Save changes" accessibilityRole="button">
-          <Text style={styles.saveText}>{saving ? 'Saving...' : 'Save Changes'}</Text>
+        <TouchableOpacity style={[styles.saveButton, { backgroundColor: colors.primary }, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving} accessibilityLabel="Save changes" accessibilityRole="button">
+          <Text style={[styles.saveText, { color: colors.buttonText }]}>{saving ? 'Saving...' : 'Save Changes'}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -296,27 +298,27 @@ export default function EditRecipeScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { flex: 1, backgroundColor: '#fff', maxWidth: 600, width: '100%', alignSelf: 'center' },
+  container: { flex: 1, maxWidth: 600, width: '100%', alignSelf: 'center' },
   content: { padding: 16, paddingBottom: 48 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   photoSection: { marginBottom: 8 },
   photoPreview: { width: '100%', height: 200, borderRadius: 8 },
   photoActions: { flexDirection: 'row', justifyContent: 'center', gap: 24, marginTop: 8 },
   photoActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, padding: 8 },
-  photoActionText: { color: '#007AFF', fontSize: 14, fontWeight: '500' },
+  photoActionText: { fontSize: 14, fontWeight: '500' },
   addPhotoButton: {
     alignItems: 'center', paddingVertical: 32, borderWidth: 2,
-    borderColor: '#ddd', borderStyle: 'dashed', borderRadius: 12, marginBottom: 8,
+    borderStyle: 'dashed', borderRadius: 12, marginBottom: 8,
   },
-  addPhotoText: { marginTop: 4, color: '#007AFF', fontSize: 14 },
+  addPhotoText: { marginTop: 4, fontSize: 14 },
   label: { fontSize: 16, fontWeight: '600', marginTop: 16, marginBottom: 8 },
-  input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, fontSize: 15 },
+  input: { borderWidth: 1, borderRadius: 8, padding: 10, fontSize: 15 },
   row: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   stepNumber: { fontSize: 15, fontWeight: '600', marginRight: 8, width: 24 },
   addRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, marginBottom: 8 },
-  addText: { color: '#007AFF', marginLeft: 6 },
+  addText: { marginLeft: 6 },
   saveButton: {
-    backgroundColor: '#007AFF', borderRadius: 8, padding: 16, alignItems: 'center', marginTop: 24,
+    borderRadius: 8, padding: 16, alignItems: 'center', marginTop: 24,
   },
-  saveText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  saveText: { fontSize: 16, fontWeight: '600' },
 });

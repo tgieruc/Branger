@@ -9,6 +9,8 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { useColors } from '@/hooks/useColors';
+import { shadow } from '@/constants/theme';
 
 type ListSummary = {
   id: string;
@@ -19,6 +21,7 @@ type ListSummary = {
 
 export default function ListsScreen() {
   const { user } = useAuth();
+  const colors = useColors();
   const [lists, setLists] = useState<ListSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -127,21 +130,21 @@ export default function ListsScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
       <FlatList
         data={lists}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.cardRow}>
             <Link href={`/(tabs)/lists/${item.id}`} asChild style={{ flex: 1 }}>
-              <TouchableOpacity style={styles.card}>
+              <TouchableOpacity style={StyleSheet.flatten([styles.card, { backgroundColor: colors.card }])}>
                 <View style={styles.cardInfo}>
-                  <Text style={styles.cardTitle}>{item.name}</Text>
-                  <Text style={styles.cardSub}>
+                  <Text style={[styles.cardTitle, { color: colors.text }]}>{item.name}</Text>
+                  <Text style={[styles.cardSub, { color: colors.textTertiary }]}>
                     {item.unchecked_count} remaining / {item.item_count} total
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                <Ionicons name="chevron-forward" size={20} color={colors.chevron} />
               </TouchableOpacity>
             </Link>
             <TouchableOpacity
@@ -151,7 +154,7 @@ export default function ListsScreen() {
               accessibilityLabel="Delete list"
               accessibilityRole="button"
             >
-              <Ionicons name="trash-outline" size={20} color="#ff3b30" />
+              <Ionicons name="trash-outline" size={20} color={colors.danger} />
             </TouchableOpacity>
           </View>
         )}
@@ -161,35 +164,36 @@ export default function ListsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         ListEmptyComponent={
-          <Text style={styles.empty}>No lists yet. Tap + to create one.</Text>
+          <Text style={[styles.empty, { color: colors.textTertiary }]}>No lists yet. Tap + to create one.</Text>
         }
       />
 
       {showCreate ? (
-        <View style={[styles.createRow, { marginBottom: keyboardHeight }]}>
+        <View style={[styles.createRow, { marginBottom: keyboardHeight, backgroundColor: colors.background, borderTopColor: colors.borderLight }]}>
           <TouchableOpacity onPress={() => { setShowCreate(false); setNewName(''); }}>
-            <Ionicons name="close-circle" size={32} color="#999" />
+            <Ionicons name="close-circle" size={32} color={colors.placeholder} />
           </TouchableOpacity>
           <TextInput
-            style={styles.createInput}
+            style={[styles.createInput, { borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]}
             placeholder="List name"
+            placeholderTextColor={colors.placeholder}
             value={newName}
             onChangeText={setNewName}
             autoFocus
             onSubmitEditing={handleCreate}
           />
           <TouchableOpacity onPress={handleCreate}>
-            <Ionicons name="checkmark-circle" size={32} color="#007AFF" />
+            <Ionicons name="checkmark-circle" size={32} color={colors.primary} />
           </TouchableOpacity>
         </View>
       ) : (
         <TouchableOpacity
-          style={styles.fab}
+          style={[styles.fab, { backgroundColor: colors.primary }]}
           onPress={() => setShowCreate(true)}
           accessibilityLabel="Create new list"
           accessibilityRole="button"
         >
-          <Ionicons name="add" size={28} color="#fff" />
+          <Ionicons name="add" size={28} color={colors.buttonText} />
         </TouchableOpacity>
       )}
 
@@ -205,36 +209,34 @@ export default function ListsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', maxWidth: 600, width: '100%', alignSelf: 'center' },
+  container: { flex: 1, maxWidth: 600, width: '100%', alignSelf: 'center' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   list: { paddingVertical: 8, paddingBottom: 80 },
-  empty: { textAlign: 'center', marginTop: 48, color: '#888' },
+  empty: { textAlign: 'center', marginTop: 48 },
   cardRow: {
     flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginVertical: 6,
   },
   card: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff',
+    flex: 1, flexDirection: 'row', alignItems: 'center',
     padding: 16, borderRadius: 12,
-    elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1, shadowRadius: 4,
+    ...shadow(1, 4, 0.1),
   },
   cardDelete: { padding: 12 },
   cardInfo: { flex: 1 },
   cardTitle: { fontSize: 16, fontWeight: '600' },
-  cardSub: { fontSize: 13, color: '#888', marginTop: 4 },
+  cardSub: { fontSize: 13, marginTop: 4 },
   createRow: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16,
-    paddingVertical: 12, backgroundColor: '#fff', borderTopWidth: 1,
-    borderTopColor: '#eee',
+    paddingVertical: 12, borderTopWidth: 1,
   },
   createInput: {
-    flex: 1, borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
+    flex: 1, borderWidth: 1, borderRadius: 8,
     padding: 10, fontSize: 15, marginHorizontal: 8,
   },
   fab: {
     position: 'absolute', bottom: 24, right: 24, width: 56, height: 56,
-    borderRadius: 28, backgroundColor: '#007AFF', justifyContent: 'center',
-    alignItems: 'center', elevation: 4, shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4,
+    borderRadius: 28, justifyContent: 'center',
+    alignItems: 'center',
+    ...shadow(2, 4, 0.25),
   },
 });
