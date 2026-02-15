@@ -6,8 +6,6 @@ import { Link } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useColors } from '@/hooks/useColors';
 
-const siteUrl = process.env.EXPO_PUBLIC_SITE_URL;
-
 export default function ForgotPasswordScreen() {
   const colors = useColors();
   const [email, setEmail] = useState('');
@@ -20,8 +18,11 @@ export default function ForgotPasswordScreen() {
       return;
     }
     setLoading(true);
+    const redirectTo = Platform.OS === 'web'
+      ? `${window.location.origin}/reset-password`
+      : 'branger://reset-password';
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${siteUrl}/reset-password`,
+      redirectTo,
     });
     if (error) {
       Alert.alert('Error', error.message);
