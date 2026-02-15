@@ -4,9 +4,11 @@ import {
 } from 'react-native';
 import { Link } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { useColors } from '@/hooks/useColors';
 
 export default function RegisterScreen() {
   const { signUp } = useAuth();
+  const colors = useColors();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -29,36 +31,39 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <Text style={styles.title}>Create Account</Text>
+      <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
       <TextInput
-        style={styles.input}
+        style={[styles.input, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground, color: colors.text }]}
         placeholder="Email"
+        placeholderTextColor={colors.placeholder}
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
       />
       <TextInput
-        style={styles.input}
+        style={[styles.input, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground, color: colors.text }]}
         placeholder="Password"
+        placeholderTextColor={colors.placeholder}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
       />
       <TextInput
-        style={styles.input}
+        style={[styles.input, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground, color: colors.text }]}
         placeholder="Confirm Password"
+        placeholderTextColor={colors.placeholder}
         value={confirmPassword}
         onChangeText={setConfirmPassword}
         secureTextEntry
       />
-      <TouchableOpacity style={[styles.button, loading && { opacity: 0.6 }]} onPress={handleRegister} disabled={loading}>
+      <TouchableOpacity style={[styles.button, { backgroundColor: colors.primary }, loading && { opacity: 0.6 }]} onPress={handleRegister} disabled={loading}>
         <Text style={styles.buttonText}>{loading ? 'Creating...' : 'Create Account'}</Text>
       </TouchableOpacity>
-      <Link href="/login" style={styles.link}>
+      <Link href="/login" style={[styles.link, { color: colors.primary }]}>
         Already have an account? Sign In
       </Link>
     </KeyboardAvoidingView>
@@ -69,12 +74,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', padding: 24, maxWidth: 600, width: '100%', alignSelf: 'center' },
   title: { fontSize: 32, fontWeight: 'bold', textAlign: 'center', marginBottom: 48 },
   input: {
-    borderWidth: 1, borderColor: '#ccc', borderRadius: 8,
+    borderWidth: 1, borderRadius: 8,
     padding: 12, marginBottom: 16, fontSize: 16,
   },
   button: {
-    backgroundColor: '#007AFF', borderRadius: 8, padding: 16, alignItems: 'center',
+    borderRadius: 8, padding: 16, alignItems: 'center',
   },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  link: { marginTop: 16, textAlign: 'center', color: '#007AFF' },
+  link: { marginTop: 16, textAlign: 'center' },
 });

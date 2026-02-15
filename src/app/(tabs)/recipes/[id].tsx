@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { getCachedRecipeDetail, setCachedRecipeDetail } from '@/lib/cache';
+import { useColors } from '@/hooks/useColors';
 import type { RecipeWithDetails } from '@/lib/types';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
@@ -28,6 +29,7 @@ export default function RecipeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
+  const colors = useColors();
   const [recipe, setRecipe] = useState<RecipeWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [listPickerVisible, setListPickerVisible] = useState(false);
@@ -179,41 +181,41 @@ export default function RecipeDetailScreen() {
           headerRight: () => (
             <View style={styles.headerRight}>
               <TouchableOpacity onPress={handleShare} style={styles.headerBtn} accessibilityLabel="Share recipe" accessibilityRole="button">
-                <Ionicons name="share-outline" size={22} color="#007AFF" />
+                <Ionicons name="share-outline" size={22} color={colors.primary} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => router.push(`/(tabs)/recipes/edit/${id}`)} style={styles.headerBtn} accessibilityLabel="Edit recipe" accessibilityRole="button">
-                <Ionicons name="create-outline" size={22} color="#007AFF" />
+                <Ionicons name="create-outline" size={22} color={colors.primary} />
               </TouchableOpacity>
               <TouchableOpacity onPress={handleDelete} style={styles.headerBtn} accessibilityLabel="Delete recipe" accessibilityRole="button">
-                <Ionicons name="trash-outline" size={22} color="#ff3b30" />
+                <Ionicons name="trash-outline" size={22} color={colors.danger} />
               </TouchableOpacity>
             </View>
           ),
         }}
       />
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
         {recipe.photo_url && (
           <Image source={{ uri: recipe.photo_url }} style={styles.image} />
         )}
 
-        <TouchableOpacity onPress={handleAddToList} style={styles.addToListButton} accessibilityLabel="Add ingredients to shopping list" accessibilityRole="button">
-          <Ionicons name="cart-outline" size={20} color="#007AFF" />
-          <Text style={styles.addToListText}>Add to Shopping List</Text>
+        <TouchableOpacity onPress={handleAddToList} style={[styles.addToListButton, { backgroundColor: colors.addToListBg, borderColor: colors.addToListBorder }]} accessibilityLabel="Add ingredients to shopping list" accessibilityRole="button">
+          <Ionicons name="cart-outline" size={20} color={colors.primary} />
+          <Text style={[styles.addToListText, { color: colors.primary }]}>Add to Shopping List</Text>
         </TouchableOpacity>
 
-        <Text style={styles.sectionTitle}>Ingredients</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Ingredients</Text>
         {recipe.ingredients.map((ing) => (
           <View key={ing.id} style={styles.ingredientRow}>
-            <Text style={styles.ingredientName}>{ing.name}</Text>
-            <Text style={styles.ingredientDesc}>{ing.description}</Text>
+            <Text style={[styles.ingredientName, { color: colors.text }]}>{ing.name}</Text>
+            <Text style={[styles.ingredientDesc, { color: colors.textSecondary }]}>{ing.description}</Text>
           </View>
         ))}
 
-        <Text style={styles.sectionTitle}>Steps</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Steps</Text>
         {recipe.steps.map((step) => (
           <View key={step.id} style={styles.stepRow}>
-            <Text style={styles.stepNumber}>{step.step_number}.</Text>
-            <Text style={styles.stepText}>{step.instruction}</Text>
+            <Text style={[styles.stepNumber, { color: colors.text }]}>{step.step_number}.</Text>
+            <Text style={[styles.stepText, { color: colors.text }]}>{step.instruction}</Text>
           </View>
         ))}
       </ScrollView>
@@ -224,47 +226,48 @@ export default function RecipeDetailScreen() {
         animationType="fade"
         onRequestClose={() => setListPickerVisible(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setListPickerVisible(false)}>
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.modalTitle}>Add to List</Text>
+        <Pressable style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]} onPress={() => setListPickerVisible(false)}>
+          <Pressable style={[styles.modalContent, { backgroundColor: colors.modalBackground }]} onPress={(e) => e.stopPropagation()}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Add to List</Text>
             {availableLists.map((list) => (
               <TouchableOpacity
                 key={list.id}
-                style={styles.modalOption}
+                style={[styles.modalOption, { borderBottomColor: colors.borderLight }]}
                 onPress={() => addIngredientsToList(list)}
               >
-                <Ionicons name="list-outline" size={20} color="#007AFF" />
-                <Text style={styles.modalOptionText}>{list.name}</Text>
+                <Ionicons name="list-outline" size={20} color={colors.primary} />
+                <Text style={[styles.modalOptionText, { color: colors.text }]}>{list.name}</Text>
               </TouchableOpacity>
             ))}
             {showNewListInput ? (
-              <View style={styles.newListRow}>
+              <View style={[styles.newListRow, { borderBottomColor: colors.borderLight }]}>
                 <TextInput
-                  style={styles.newListInput}
+                  style={[styles.newListInput, { borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]}
                   placeholder="List name"
+                  placeholderTextColor={colors.placeholder}
                   value={newListName}
                   onChangeText={setNewListName}
                   autoFocus
                   onSubmitEditing={createListAndAddIngredients}
                 />
                 <TouchableOpacity onPress={createListAndAddIngredients}>
-                  <Ionicons name="checkmark-circle" size={28} color="#007AFF" />
+                  <Ionicons name="checkmark-circle" size={28} color={colors.primary} />
                 </TouchableOpacity>
               </View>
             ) : (
               <TouchableOpacity
-                style={styles.modalOption}
+                style={[styles.modalOption, { borderBottomColor: colors.borderLight }]}
                 onPress={() => setShowNewListInput(true)}
               >
-                <Ionicons name="add-circle-outline" size={20} color="#34c759" />
-                <Text style={[styles.modalOptionText, { color: '#34c759' }]}>Create New List</Text>
+                <Ionicons name="add-circle-outline" size={20} color={colors.success} />
+                <Text style={[styles.modalOptionText, { color: colors.success }]}>Create New List</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
               style={styles.modalCancel}
               onPress={() => setListPickerVisible(false)}
             >
-              <Text style={styles.modalCancelText}>Cancel</Text>
+              <Text style={[styles.modalCancelText, { color: colors.textTertiary }]}>Cancel</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -282,7 +285,7 @@ export default function RecipeDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', maxWidth: 600, width: '100%', alignSelf: 'center' },
+  container: { flex: 1, maxWidth: 600, width: '100%', alignSelf: 'center' },
   content: { paddingBottom: 48 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   headerRight: { flexDirection: 'row', gap: 16, marginRight: 4 },
@@ -291,9 +294,9 @@ const styles = StyleSheet.create({
   addToListButton: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     marginHorizontal: 16, marginVertical: 12, paddingVertical: 12, paddingHorizontal: 16,
-    borderRadius: 10, backgroundColor: '#f0f7ff', borderWidth: 1, borderColor: '#d0e4ff',
+    borderRadius: 10, borderWidth: 1,
   },
-  addToListText: { color: '#007AFF', fontSize: 15, fontWeight: '500' },
+  addToListText: { fontSize: 15, fontWeight: '500' },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
@@ -307,31 +310,31 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   ingredientName: { fontSize: 15, fontWeight: '500', marginRight: 8 },
-  ingredientDesc: { fontSize: 15, color: '#666' },
+  ingredientDesc: { fontSize: 15 },
   stepRow: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 6 },
   stepNumber: { fontSize: 15, fontWeight: '600', marginRight: 8, width: 24 },
   stepText: { fontSize: 15, flex: 1 },
   modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center',
+    flex: 1, justifyContent: 'center',
     alignItems: 'center', padding: 32,
   },
   modalContent: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 20, width: '100%',
+    borderRadius: 16, padding: 20, width: '100%',
     maxWidth: 360,
   },
   modalTitle: { fontSize: 18, fontWeight: '600', marginBottom: 16, textAlign: 'center' },
   modalOption: {
     flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#eee',
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   modalOptionText: { fontSize: 16 },
   newListRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#eee',
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   newListInput: {
-    flex: 1, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, fontSize: 15,
+    flex: 1, borderWidth: 1, borderRadius: 8, padding: 10, fontSize: 15,
   },
   modalCancel: { paddingVertical: 14, marginTop: 4 },
-  modalCancelText: { fontSize: 16, color: '#888', textAlign: 'center' },
+  modalCancelText: { fontSize: 16, textAlign: 'center' },
 });

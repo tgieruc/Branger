@@ -14,11 +14,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { RecipeCard } from '@/components/RecipeCard';
 import { getCachedRecipeList, setCachedRecipeList } from '@/lib/cache';
+import { useColors } from '@/hooks/useColors';
 import type { Recipe } from '@/lib/types';
 
 const PAGE_SIZE = 20;
 
 export default function RecipesScreen() {
+  const colors = useColors();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -124,19 +126,20 @@ export default function RecipesScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#888" style={styles.searchIcon} />
+    <View style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
+      <View style={[styles.searchContainer, { backgroundColor: colors.searchBarBg, borderColor: colors.inputBorder }]}>
+        <Ionicons name="search" size={20} color={colors.textTertiary} style={styles.searchIcon} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: colors.text }]}
           placeholder="Search recipes..."
+          placeholderTextColor={colors.placeholder}
           value={searchQuery}
           onChangeText={setSearchQuery}
           returnKeyType="search"
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={20} color="#888" />
+            <Ionicons name="close-circle" size={20} color={colors.textTertiary} />
           </TouchableOpacity>
         )}
       </View>
@@ -157,7 +160,7 @@ export default function RecipesScreen() {
         onEndReachedThreshold={0.5}
         ListFooterComponent={loadingMore ? <ActivityIndicator style={{ padding: 16 }} /> : null}
         ListEmptyComponent={
-          <Text style={styles.empty}>
+          <Text style={[styles.empty, { color: colors.textTertiary }]}>
             {searchQuery.length > 0
               ? 'No recipes match your search.'
               : 'No recipes yet. Tap + to create one.'}
@@ -166,11 +169,11 @@ export default function RecipesScreen() {
       />
       <Link href="/(tabs)/recipes/create" asChild>
         <TouchableOpacity
-          style={styles.fab}
+          style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.shadow }]}
           accessibilityLabel="Create new recipe"
           accessibilityRole="button"
         >
-          <Ionicons name="add" size={28} color="#fff" />
+          <Ionicons name="add" size={28} color={colors.buttonText} />
         </TouchableOpacity>
       </Link>
     </View>
@@ -178,23 +181,21 @@ export default function RecipesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', maxWidth: 600, width: '100%', alignSelf: 'center' },
+  container: { flex: 1, maxWidth: 600, width: '100%', alignSelf: 'center' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
     margin: 16,
     marginBottom: 8,
     paddingHorizontal: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#ddd',
   },
   searchIcon: { marginRight: 8 },
   searchInput: { flex: 1, paddingVertical: 10, fontSize: 15 },
   list: { paddingVertical: 8, paddingBottom: 80 },
-  empty: { textAlign: 'center', marginTop: 48, color: '#888' },
+  empty: { textAlign: 'center', marginTop: 48 },
   fab: {
     position: 'absolute',
     bottom: 24,
@@ -202,11 +203,9 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,

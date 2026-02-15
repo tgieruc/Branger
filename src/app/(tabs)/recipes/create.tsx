@@ -9,6 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
+import { useColors } from '@/hooks/useColors';
 import { parseRecipeFromText, parseRecipeFromUrl, parseRecipeFromPhoto } from '@/lib/ai';
 
 type Ingredient = { name: string; description: string };
@@ -25,6 +26,7 @@ const MODES: { key: Mode; label: string; icon: string }[] = [
 export default function CreateRecipeScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const colors = useColors();
 
   const [mode, setMode] = useState<Mode>('manual');
   const [title, setTitle] = useState('');
@@ -218,7 +220,7 @@ export default function CreateRecipeScreen() {
   return (
     <View style={styles.flex}>
         <ScrollView
-          style={styles.container}
+          style={[styles.container, { backgroundColor: colors.background }]}
           contentContainerStyle={[styles.content, { paddingBottom: 48 + keyboardHeight }]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
@@ -228,11 +230,11 @@ export default function CreateRecipeScreen() {
             {MODES.map((m) => (
               <TouchableOpacity
                 key={m.key}
-                style={[styles.modeButton, mode === m.key && styles.modeActive]}
+                style={[styles.modeButton, { borderColor: colors.primary }, mode === m.key && [styles.modeActive, { backgroundColor: colors.primary }]]}
                 onPress={() => setMode(m.key)}
               >
-                <Ionicons name={m.icon as any} size={18} color={mode === m.key ? '#fff' : '#007AFF'} />
-                <Text style={[styles.modeText, mode === m.key && styles.modeTextActive]}>
+                <Ionicons name={m.icon as any} size={18} color={mode === m.key ? colors.buttonText : colors.primary} />
+                <Text style={[styles.modeText, { color: colors.primary }, mode === m.key && { color: colors.buttonText }]}>
                   {m.label}
                 </Text>
               </TouchableOpacity>
@@ -242,49 +244,51 @@ export default function CreateRecipeScreen() {
           {aiLoading && (
             <View style={styles.aiLoading}>
               <ActivityIndicator size="large" />
-              <Text style={styles.aiLoadingText}>Parsing recipe...</Text>
+              <Text style={[styles.aiLoadingText, { color: colors.textTertiary }]}>Parsing recipe...</Text>
             </View>
           )}
 
           {/* AI input areas */}
           {mode === 'text' && !aiLoading && (
             <View>
-              <Text style={styles.label}>Paste recipe text</Text>
+              <Text style={[styles.label, { color: colors.text }]}>Paste recipe text</Text>
               <TextInput
-                style={[styles.input, { height: 160, textAlignVertical: 'top' }]}
+                style={[styles.input, { height: 160, textAlignVertical: 'top', borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]}
                 placeholder="Paste a recipe here..."
+                placeholderTextColor={colors.placeholder}
                 value={aiText}
                 onChangeText={setAiText}
                 multiline
               />
-              <TouchableOpacity style={styles.aiButton} onPress={handleAiText}>
-                <Text style={styles.aiButtonText}>Generate Recipe</Text>
+              <TouchableOpacity style={[styles.aiButton, { backgroundColor: colors.aiPurple }]} onPress={handleAiText}>
+                <Text style={[styles.aiButtonText, { color: colors.buttonText }]}>Generate Recipe</Text>
               </TouchableOpacity>
             </View>
           )}
 
           {mode === 'url' && !aiLoading && (
             <View>
-              <Text style={styles.label}>Recipe URL</Text>
+              <Text style={[styles.label, { color: colors.text }]}>Recipe URL</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]}
                 placeholder="https://example.com/recipe"
+                placeholderTextColor={colors.placeholder}
                 value={aiUrl}
                 onChangeText={setAiUrl}
                 autoCapitalize="none"
                 keyboardType="url"
               />
-              <TouchableOpacity style={styles.aiButton} onPress={handleAiUrl}>
-                <Text style={styles.aiButtonText}>Import Recipe</Text>
+              <TouchableOpacity style={[styles.aiButton, { backgroundColor: colors.aiPurple }]} onPress={handleAiUrl}>
+                <Text style={[styles.aiButtonText, { color: colors.buttonText }]}>Import Recipe</Text>
               </TouchableOpacity>
             </View>
           )}
 
           {mode === 'photo' && !aiLoading && (
             <View>
-              <TouchableOpacity style={styles.photoButton} onPress={handleAiPhoto}>
-                <Ionicons name="camera-outline" size={32} color="#007AFF" />
-                <Text style={styles.photoText}>Take or choose a photo</Text>
+              <TouchableOpacity style={[styles.photoButton, { borderColor: colors.inputBorder }]} onPress={handleAiPhoto}>
+                <Ionicons name="camera-outline" size={32} color={colors.primary} />
+                <Text style={[styles.photoText, { color: colors.primary }]}>Take or choose a photo</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -292,41 +296,41 @@ export default function CreateRecipeScreen() {
           {/* Manual form (always shown for manual mode, shown after AI populates) */}
           {(mode === 'manual') && !aiLoading && (
             <>
-              <Text style={styles.label}>Title</Text>
-              <TextInput style={styles.input} placeholder="Recipe title" value={title} onChangeText={setTitle} />
+              <Text style={[styles.label, { color: colors.text }]}>Title</Text>
+              <TextInput style={[styles.input, { borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]} placeholder="Recipe title" placeholderTextColor={colors.placeholder} value={title} onChangeText={setTitle} />
 
-              <Text style={styles.label}>Ingredients</Text>
+              <Text style={[styles.label, { color: colors.text }]}>Ingredients</Text>
               {ingredients.map((ing, i) => (
                 <View key={i} style={styles.row}>
-                  <TextInput style={[styles.input, { flex: 1, marginRight: 8 }]} placeholder="Item" value={ing.name} onChangeText={(v) => updateIngredient(i, 'name', v)} />
-                  <TextInput style={[styles.input, { flex: 1, marginRight: 8 }]} placeholder="Qty / notes" value={ing.description} onChangeText={(v) => updateIngredient(i, 'description', v)} />
+                  <TextInput style={[styles.input, { flex: 1, marginRight: 8, borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]} placeholder="Item" placeholderTextColor={colors.placeholder} value={ing.name} onChangeText={(v) => updateIngredient(i, 'name', v)} />
+                  <TextInput style={[styles.input, { flex: 1, marginRight: 8, borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]} placeholder="Qty / notes" placeholderTextColor={colors.placeholder} value={ing.description} onChangeText={(v) => updateIngredient(i, 'description', v)} />
                   <TouchableOpacity onPress={() => removeIngredient(i)}>
-                    <Ionicons name="close-circle" size={24} color="#ff3b30" />
+                    <Ionicons name="close-circle" size={24} color={colors.danger} />
                   </TouchableOpacity>
                 </View>
               ))}
               <TouchableOpacity onPress={addIngredient} style={styles.addRow}>
-                <Ionicons name="add-circle-outline" size={20} color="#007AFF" />
-                <Text style={styles.addText}>Add ingredient</Text>
+                <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+                <Text style={[styles.addText, { color: colors.primary }]}>Add ingredient</Text>
               </TouchableOpacity>
 
-              <Text style={styles.label}>Steps</Text>
+              <Text style={[styles.label, { color: colors.text }]}>Steps</Text>
               {steps.map((step, i) => (
                 <View key={i} style={styles.row}>
-                  <Text style={styles.stepNumber}>{i + 1}.</Text>
-                  <TextInput style={[styles.input, { flex: 1, marginRight: 8 }]} placeholder="Instruction" value={step.instruction} onChangeText={(v) => updateStep(i, v)} multiline />
+                  <Text style={[styles.stepNumber, { color: colors.text }]}>{i + 1}.</Text>
+                  <TextInput style={[styles.input, { flex: 1, marginRight: 8, borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]} placeholder="Instruction" placeholderTextColor={colors.placeholder} value={step.instruction} onChangeText={(v) => updateStep(i, v)} multiline />
                   <TouchableOpacity onPress={() => removeStep(i)}>
-                    <Ionicons name="close-circle" size={24} color="#ff3b30" />
+                    <Ionicons name="close-circle" size={24} color={colors.danger} />
                   </TouchableOpacity>
                 </View>
               ))}
               <TouchableOpacity onPress={addStep} style={styles.addRow}>
-                <Ionicons name="add-circle-outline" size={20} color="#007AFF" />
-                <Text style={styles.addText}>Add step</Text>
+                <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+                <Text style={[styles.addText, { color: colors.primary }]}>Add step</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.saveButton, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
-                <Text style={styles.saveText}>{saving ? 'Saving...' : 'Save Recipe'}</Text>
+              <TouchableOpacity style={[styles.saveButton, { backgroundColor: colors.primary }, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
+                <Text style={[styles.saveText, { color: colors.buttonText }]}>{saving ? 'Saving...' : 'Save Recipe'}</Text>
               </TouchableOpacity>
             </>
           )}
@@ -337,35 +341,34 @@ export default function CreateRecipeScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { flex: 1, backgroundColor: '#fff', maxWidth: 600, width: '100%', alignSelf: 'center' },
+  container: { flex: 1, maxWidth: 600, width: '100%', alignSelf: 'center' },
   content: { padding: 16, paddingBottom: 48 },
   modeRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   modeButton: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 4, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#007AFF',
+    gap: 4, paddingVertical: 10, borderRadius: 8, borderWidth: 1,
   },
-  modeActive: { backgroundColor: '#007AFF' },
-  modeText: { fontSize: 13, color: '#007AFF' },
-  modeTextActive: { color: '#fff' },
+  modeActive: {},
+  modeText: { fontSize: 13 },
   label: { fontSize: 16, fontWeight: '600', marginTop: 16, marginBottom: 8 },
-  input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, fontSize: 15 },
+  input: { borderWidth: 1, borderRadius: 8, padding: 10, fontSize: 15 },
   row: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   stepNumber: { fontSize: 15, fontWeight: '600', marginRight: 8, width: 24 },
   addRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, marginBottom: 8 },
-  addText: { color: '#007AFF', marginLeft: 6 },
+  addText: { marginLeft: 6 },
   saveButton: {
-    backgroundColor: '#007AFF', borderRadius: 8, padding: 16, alignItems: 'center', marginTop: 24,
+    borderRadius: 8, padding: 16, alignItems: 'center', marginTop: 24,
   },
-  saveText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  saveText: { fontSize: 16, fontWeight: '600' },
   aiButton: {
-    backgroundColor: '#5856D6', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 12,
+    borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 12,
   },
-  aiButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  aiButtonText: { fontSize: 16, fontWeight: '600' },
   aiLoading: { alignItems: 'center', paddingVertical: 48 },
-  aiLoadingText: { marginTop: 12, color: '#888', fontSize: 16 },
+  aiLoadingText: { marginTop: 12, fontSize: 16 },
   photoButton: {
     alignItems: 'center', paddingVertical: 48, borderWidth: 2,
-    borderColor: '#ddd', borderStyle: 'dashed', borderRadius: 12, marginTop: 8,
+    borderStyle: 'dashed', borderRadius: 12, marginTop: 8,
   },
-  photoText: { marginTop: 8, color: '#007AFF', fontSize: 16 },
+  photoText: { marginTop: 8, fontSize: 16 },
 });
