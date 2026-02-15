@@ -66,6 +66,14 @@ describe('parseRecipeFromText', () => {
   });
 
   it('throws when session refresh fails', async () => {
+    // Session expires within 60s, so refresh is triggered
+    const expiringSession = {
+      ...mockSession,
+      expires_at: Math.floor(Date.now() / 1000) + 30,
+    };
+    (supabase.auth.getSession as jest.Mock).mockResolvedValue({
+      data: { session: expiringSession },
+    });
     (supabase.auth.refreshSession as jest.Mock).mockResolvedValue({
       data: { session: null },
     });

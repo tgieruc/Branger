@@ -164,11 +164,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch the webpage
+    // Fetch the webpage with timeout
+    const pageController = new AbortController();
+    const pageTimeout = setTimeout(() => pageController.abort(), 15000);
     const pageResponse = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; RecipeParser/1.0)" },
       redirect: "follow",
+      signal: pageController.signal,
     });
+    clearTimeout(pageTimeout);
 
     // Verify the final URL (after redirects) is not private
     try {
@@ -190,7 +194,9 @@ Deno.serve(async (req) => {
     const html = await pageResponse.text();
     const pageText = extractTextFromHtml(html);
 
-    // Send to OpenAI
+    // Send to OpenAI with timeout
+    const aiController = new AbortController();
+    const aiTimeout = setTimeout(() => aiController.abort(), 30000);
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -206,7 +212,9 @@ Deno.serve(async (req) => {
         temperature: 0.3,
         response_format: { type: "json_object" },
       }),
+      signal: aiController.signal,
     });
+    clearTimeout(aiTimeout);
 
     if (!response.ok) {
       const errorBody = await response.text();
@@ -216,7 +224,23 @@ Deno.serve(async (req) => {
     const data = await response.json();
     const recipe = JSON.parse(data.choices[0].message.content);
 
-    return new Response(JSON.stringify(recipe), {
+    // Validate response shape
+    if (
+      typeof recipe.title !== "string" ||
+      !Array.isArray(recipe.ingredients) ||
+      !Array.isArray(recipe.steps)
+    ) {
+      throw new Error("Invalid response format from AI");
+    }
+
+    return new Response(JSON.stringify({
+      title: recipe.title,
+      ingredients: recipe.ingredients.map((i: Record<string, unknown>) => ({
+        name: String(i.name ?? ""),
+        description: String(i.description ?? ""),
+      })),
+      steps: recipe.steps.map((s: unknown) => String(s)),
+    }), {
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (error) {

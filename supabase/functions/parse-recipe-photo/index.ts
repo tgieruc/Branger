@@ -77,7 +77,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Step 1: OCR with Mistral pixtral
+    // Step 1: OCR with Mistral pixtral (with timeout)
+    const ocrController = new AbortController();
+    const ocrTimeout = setTimeout(() => ocrController.abort(), 30000);
     const ocrResponse = await fetch("https://api.mistral.ai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -102,7 +104,9 @@ Deno.serve(async (req) => {
           },
         ],
       }),
+      signal: ocrController.signal,
     });
+    clearTimeout(ocrTimeout);
 
     if (!ocrResponse.ok) {
       const errorBody = await ocrResponse.text();
@@ -112,7 +116,9 @@ Deno.serve(async (req) => {
     const ocrData = await ocrResponse.json();
     const extractedText = ocrData.choices[0].message.content;
 
-    // Step 2: Structure with OpenAI
+    // Step 2: Structure with OpenAI (with timeout)
+    const aiController = new AbortController();
+    const aiTimeout = setTimeout(() => aiController.abort(), 30000);
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -128,7 +134,9 @@ Deno.serve(async (req) => {
         temperature: 0.3,
         response_format: { type: "json_object" },
       }),
+      signal: aiController.signal,
     });
+    clearTimeout(aiTimeout);
 
     if (!response.ok) {
       const errorBody = await response.text();
@@ -138,7 +146,23 @@ Deno.serve(async (req) => {
     const data = await response.json();
     const recipe = JSON.parse(data.choices[0].message.content);
 
-    return new Response(JSON.stringify(recipe), {
+    // Validate response shape
+    if (
+      typeof recipe.title !== "string" ||
+      !Array.isArray(recipe.ingredients) ||
+      !Array.isArray(recipe.steps)
+    ) {
+      throw new Error("Invalid response format from AI");
+    }
+
+    return new Response(JSON.stringify({
+      title: recipe.title,
+      ingredients: recipe.ingredients.map((i: Record<string, unknown>) => ({
+        name: String(i.name ?? ""),
+        description: String(i.description ?? ""),
+      })),
+      steps: recipe.steps.map((s: unknown) => String(s)),
+    }), {
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (error) {

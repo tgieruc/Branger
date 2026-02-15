@@ -7,13 +7,16 @@ async function callEdgeFunction(
   functionName: string,
   body: Record<string, string>
 ): Promise<AIRecipeResult> {
-  // Get current session, refresh if needed to ensure a valid token
+  // Get current session, refresh only if token expires within 60s
   let { data: { session } } = await supabase.auth.getSession();
 
   if (session) {
-    // Force refresh to guarantee a fresh access token
-    const { data } = await supabase.auth.refreshSession();
-    session = data.session;
+    const expiresAt = session.expires_at ?? 0;
+    const nowSecs = Math.floor(Date.now() / 1000);
+    if (expiresAt - nowSecs < 60) {
+      const { data } = await supabase.auth.refreshSession();
+      session = data.session;
+    }
   }
 
   if (!session) {

@@ -132,7 +132,7 @@ export default function CreateRecipeScreen() {
       mediaTypes: ['images'],
       quality: 0.8,
     });
-    processPhotoResult(result);
+    await processPhotoResult(result);
   };
 
   const launchLibrary = async () => {
@@ -140,7 +140,7 @@ export default function CreateRecipeScreen() {
       mediaTypes: ['images'],
       quality: 0.8,
     });
-    processPhotoResult(result);
+    await processPhotoResult(result);
   };
 
   const handleAiPhoto = () => {
@@ -299,7 +299,7 @@ export default function CreateRecipeScreen() {
               {ingredients.map((ing, i) => (
                 <View key={i} style={styles.row}>
                   <TextInput style={[styles.input, { flex: 1, marginRight: 8 }]} placeholder="Item" value={ing.name} onChangeText={(v) => updateIngredient(i, 'name', v)} />
-                  <TextInput style={[styles.input, { flex: 1, marginRight: 8 }]} placeholder="Amount" value={ing.description} onChangeText={(v) => updateIngredient(i, 'description', v)} />
+                  <TextInput style={[styles.input, { flex: 1, marginRight: 8 }]} placeholder="Qty / notes" value={ing.description} onChangeText={(v) => updateIngredient(i, 'description', v)} />
                   <TouchableOpacity onPress={() => removeIngredient(i)}>
                     <Ionicons name="close-circle" size={24} color="#ff3b30" />
                   </TouchableOpacity>

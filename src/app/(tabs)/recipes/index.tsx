@@ -20,13 +20,16 @@ export default function RecipesScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchRecipes = async () => {
-    const { data } = await supabase
-      .from('recipes')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      const { data } = await supabase
+        .from('recipes')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (data) setRecipes(data);
-    setLoading(false);
+      if (data) setRecipes(data);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const onRefresh = async () => {
