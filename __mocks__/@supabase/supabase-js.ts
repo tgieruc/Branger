@@ -32,8 +32,11 @@ const mockStorage = {
   }),
 };
 
+const mockRpc = jest.fn().mockResolvedValue({ data: [], error: null });
+
 export const createClient = jest.fn().mockReturnValue({
   auth: mockAuth,
   from: mockFrom,
+  rpc: mockRpc,
   storage: mockStorage,
 });

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { AuthProvider, useAuth } from '../lib/auth';
+import { NetInfoProvider } from '../lib/net-info';
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
@@ -28,9 +29,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <AuthGuard>
-        <Slot />
-      </AuthGuard>
+      <NetInfoProvider>
+        <AuthGuard>
+          <Slot />
+        </AuthGuard>
+      </NetInfoProvider>
     </AuthProvider>
   );
 }

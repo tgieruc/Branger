@@ -1,50 +1,96 @@
-# Welcome to your Expo app 👋
+# Branger
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A recipe and collaborative shopping list app with AI-powered recipe import. Built with React Native (Expo) and Supabase.
 
-## Get started
+## Features
 
-1. Install dependencies
+- **AI Recipe Import** -- paste text, enter a URL, or take a photo to auto-parse recipes
+- **Manual Recipe Creation** -- full form with ingredients and step-by-step instructions
+- **Recipe Sharing** -- generate shareable links for any recipe
+- **Collaborative Shopping Lists** -- create lists, invite others, real-time sync
+- **Add to List** -- add recipe ingredients to any shopping list in one tap
+- **Cross-Platform** -- iOS, Android, and web
 
+## Tech Stack
+
+- React Native 0.81 + Expo SDK 54
+- Expo Router v6 (file-based routing)
+- Supabase (PostgreSQL, Auth, Storage, Edge Functions)
+- OpenAI GPT-4o + Mistral (AI recipe parsing)
+- TypeScript
+
+## Prerequisites
+
+- Node.js 18+
+- npm or yarn
+- [Expo CLI](https://docs.expo.dev/get-started/installation/)
+- [Supabase account](https://supabase.com) (or self-hosted instance)
+- OpenAI API key (for AI features)
+- Mistral API key (for photo OCR)
+
+## Setup
+
+1. **Clone and install:**
    ```bash
+   git clone <repo-url>
+   cd branger
    npm install
    ```
 
-2. Start the app
-
+2. **Configure environment:**
    ```bash
-   npx expo start
+   cp .env.example .env.local
+   # Edit .env.local with your Supabase URL and anon key
    ```
 
-In the output, you'll find options to open the app in a
+3. **Set up Supabase:**
+   - Create a new Supabase project
+   - Run migrations in order from `supabase/migrations/`
+   - Set edge function secrets in the Supabase dashboard:
+     - `OPENAI_API_KEY`
+     - `MISTRAL_API_KEY`
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+4. **Deploy edge functions:**
+   ```bash
+   npx supabase functions deploy parse-recipe-text --no-verify-jwt
+   npx supabase functions deploy parse-recipe-url --no-verify-jwt
+   npx supabase functions deploy parse-recipe-photo --no-verify-jwt
+   ```
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+5. **Start the app:**
+   ```bash
+   npm start
+   ```
 
-## Get a fresh project
+## Environment Variables
 
-When you're ready, run:
+| Variable | Description |
+|----------|-------------|
+| `EXPO_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase anonymous/public key |
+| `OPENAI_API_KEY` | OpenAI API key (set in Supabase dashboard) |
+| `MISTRAL_API_KEY` | Mistral API key (set in Supabase dashboard) |
+
+## Testing
 
 ```bash
-npm run reset-project
+npm test           # Run all tests
+npm run test:watch # Watch mode
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Project Structure
 
-## Learn more
+```
+src/
+  app/              # Screens (Expo Router file-based routing)
+  components/       # Reusable UI components
+  hooks/            # Custom React hooks
+  lib/              # Business logic, Supabase client, types
+supabase/
+  functions/        # Edge Functions (Deno)
+  migrations/       # PostgreSQL migrations
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## License
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Private

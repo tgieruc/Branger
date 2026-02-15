@@ -230,6 +230,25 @@ export type Database = {
         }
         Returns: Json
       }
+      search_recipes: {
+        Args: {
+          p_query?: string
+          p_limit?: number
+          p_cursor_time?: string | null
+          p_cursor_id?: string | null
+        }
+        Returns: {
+          id: string
+          user_id: string
+          title: string
+          photo_url: string | null
+          source_type: string
+          source_url: string | null
+          share_token: string | null
+          created_at: string
+          updated_at: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

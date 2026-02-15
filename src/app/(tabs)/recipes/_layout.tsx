@@ -28,6 +28,7 @@ export default function RecipesLayout() {
         <Stack.Screen name="index" options={{ title: 'Recipes' }} />
         <Stack.Screen name="create" options={{ title: 'New Recipe' }} />
         <Stack.Screen name="[id]" options={{ title: 'Recipe' }} />
+        <Stack.Screen name="edit/[id]" options={{ title: 'Edit Recipe' }} />
       </Stack>
       <ConfirmDialog
         visible={logoutVisible}

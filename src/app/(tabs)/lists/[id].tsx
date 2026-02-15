@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator,
-  Platform, Share,
+  Platform, Share, Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
+import { useIsOnline } from '@/lib/net-info';
+import { enqueue, replayQueue } from '@/lib/offline-queue';
 import type { ShoppingList, ListItem, ListMember } from '@/lib/types';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -15,6 +17,8 @@ export default function ListDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
+  const isOnline = useIsOnline();
+  const wasOnlineRef = useRef(isOnline);
   const [list, setList] = useState<ShoppingList | null>(null);
   const [items, setItems] = useState<ListItem[]>([]);
   const [members, setMembers] = useState<ListMember[]>([]);
@@ -77,9 +81,25 @@ export default function ListDetailScreen() {
     return () => { supabase.removeChannel(channel); };
   }, [id]);
 
+  useEffect(() => {
+    if (isOnline && !wasOnlineRef.current) {
+      replayQueue(supabase).then(({ failed }) => {
+        if (failed > 0) {
+          Alert.alert('Sync Issue', `${failed} change(s) could not be synced. They will be retried next time.`);
+        }
+        fetchData();
+      });
+    }
+    wasOnlineRef.current = isOnline;
+  }, [isOnline]);
+
   const toggleItem = async (item: ListItem) => {
     const previousItems = items;
     setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, checked: !i.checked } : i));
+    if (!isOnline) {
+      enqueue({ type: 'toggle_item', payload: { itemId: item.id, checked: !item.checked } });
+      return;
+    }
     const { error } = await supabase
       .from('list_items')
       .update({ checked: !item.checked })
@@ -99,6 +119,10 @@ export default function ListDetailScreen() {
     const idToDelete = deleteItemId;
     setItems((prev) => prev.filter((i) => i.id !== idToDelete));
     setDeleteItemId(null);
+    if (!isOnline) {
+      enqueue({ type: 'delete_item', payload: { itemId: idToDelete } });
+      return;
+    }
     const { error } = await supabase.from('list_items').delete().eq('id', idToDelete);
     if (error) {
       setItems(previousItems);
@@ -109,13 +133,23 @@ export default function ListDetailScreen() {
     if (!newItemName.trim()) return;
 
     const maxPos = items.length > 0 ? Math.max(...items.map((i) => i.position)) : -1;
-
-    await supabase.from('list_items').insert({
+    const itemData = {
       list_id: id,
       name: newItemName.trim(),
       description: newItemDesc.trim() || null,
       position: maxPos + 1,
-    });
+    };
+
+    if (!isOnline) {
+      const tempId = `temp_${Date.now()}`;
+      setItems((prev) => [...prev, { ...itemData, id: tempId, checked: false, recipe_id: null } as ListItem]);
+      enqueue({ type: 'add_item', payload: itemData });
+      setNewItemName('');
+      setNewItemDesc('');
+      return;
+    }
+
+    await supabase.from('list_items').insert(itemData);
 
     setNewItemName('');
     setNewItemDesc('');
@@ -148,10 +182,17 @@ export default function ListDetailScreen() {
   };
 
   const clearChecked = async () => {
-    const checkedIds = items.filter((i) => i.checked).map((i) => i.id);
-    if (checkedIds.length === 0) return;
+    const checkedItems = items.filter((i) => i.checked);
+    if (checkedItems.length === 0) return;
     const previousItems = items;
     setItems((prev) => prev.filter((i) => !i.checked));
+    if (!isOnline) {
+      for (const item of checkedItems) {
+        enqueue({ type: 'delete_item', payload: { itemId: item.id } });
+      }
+      return;
+    }
+    const checkedIds = checkedItems.map((i) => i.id);
     const { error } = await supabase.from('list_items').delete().in('id', checkedIds);
     if (error) {
       setItems(previousItems);
@@ -190,6 +231,15 @@ export default function ListDetailScreen() {
           ),
         }}
       />
+
+      {!isOnline && (
+        <View style={styles.offlineBanner}>
+          <Ionicons name="cloud-offline-outline" size={16} color="#856404" />
+          <Text style={styles.offlineBannerText}>
+            You're offline. Changes will sync when reconnected.
+          </Text>
+        </View>
+      )}
 
       <FlatList
         data={sortedItems}
@@ -304,4 +354,9 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, fontSize: 15,
   },
   addButton: { marginLeft: 8 },
+  offlineBanner: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#fff3cd', paddingVertical: 8, paddingHorizontal: 16, gap: 8,
+  },
+  offlineBannerText: { fontSize: 13, color: '#856404' },
 });

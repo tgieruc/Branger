@@ -18,6 +18,7 @@ import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
+import { getCachedRecipeDetail, setCachedRecipeDetail } from '@/lib/cache';
 import type { RecipeWithDetails } from '@/lib/types';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
@@ -40,6 +41,14 @@ export default function RecipeDetailScreen() {
   }, [id]);
 
   const fetchRecipe = async () => {
+    // Show cached data immediately if available
+    const cached = await getCachedRecipeDetail(id!);
+    if (cached) {
+      setRecipe(cached);
+      setLoading(false);
+    }
+
+    // Fetch fresh data from network
     const [recipeRes, ingredientsRes, stepsRes] = await Promise.all([
       supabase.from('recipes').select('*').eq('id', id!).single(),
       supabase.from('recipe_ingredients').select('*').eq('recipe_id', id!).order('position'),
@@ -51,11 +60,13 @@ export default function RecipeDetailScreen() {
       return;
     }
 
-    setRecipe({
+    const recipeWithDetails: RecipeWithDetails = {
       ...recipeRes.data,
       ingredients: ingredientsRes.data ?? [],
       steps: stepsRes.data ?? [],
-    });
+    };
+    setRecipe(recipeWithDetails);
+    setCachedRecipeDetail(id!, recipeWithDetails);
     setLoading(false);
   };
 
@@ -169,6 +180,9 @@ export default function RecipeDetailScreen() {
             <View style={styles.headerRight}>
               <TouchableOpacity onPress={handleShare} style={styles.headerBtn} accessibilityLabel="Share recipe" accessibilityRole="button">
                 <Ionicons name="share-outline" size={22} color="#007AFF" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push(`/(tabs)/recipes/edit/${id}`)} style={styles.headerBtn} accessibilityLabel="Edit recipe" accessibilityRole="button">
+                <Ionicons name="create-outline" size={22} color="#007AFF" />
               </TouchableOpacity>
               <TouchableOpacity onPress={handleDelete} style={styles.headerBtn} accessibilityLabel="Delete recipe" accessibilityRole="button">
                 <Ionicons name="trash-outline" size={22} color="#ff3b30" />
