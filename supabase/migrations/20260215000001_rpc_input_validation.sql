@@ -67,11 +67,13 @@ BEGIN
     RAISE EXCEPTION 'Cannot add more than 200 items at once';
   END IF;
 
+  -- Lock existing rows to prevent concurrent position conflicts
+  PERFORM 1 FROM public.list_items WHERE list_id = p_list_id FOR UPDATE;
+
   SELECT COALESCE(MAX(position), -1) + 1
     INTO v_start_pos
     FROM public.list_items
-    WHERE list_id = p_list_id
-    FOR UPDATE;
+    WHERE list_id = p_list_id;
 
   FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
   LOOP

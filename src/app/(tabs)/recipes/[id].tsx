@@ -12,6 +12,7 @@ import {
   Platform,
   Modal,
   Pressable,
+  TextInput,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,6 +32,8 @@ export default function RecipeDetailScreen() {
   const [listPickerVisible, setListPickerVisible] = useState(false);
   const [availableLists, setAvailableLists] = useState<ListOption[]>([]);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [showNewListInput, setShowNewListInput] = useState(false);
+  const [newListName, setNewListName] = useState('');
 
   useEffect(() => {
     fetchRecipe();
@@ -99,16 +102,25 @@ export default function RecipeDetailScreen() {
       .map((m: Record<string, unknown>) => m.shopping_lists as { id: string; name: string } | null)
       .filter((l): l is { id: string; name: string } => l !== null);
 
-    if (lists.length === 0) {
-      Alert.alert(
-        'No Lists',
-        'Create a shopping list first, then add recipe ingredients to it.',
-      );
+    setAvailableLists(lists);
+    setShowNewListInput(false);
+    setNewListName('');
+    setListPickerVisible(true);
+  };
+
+  const createListAndAddIngredients = async () => {
+    if (!newListName.trim() || !recipe) return;
+
+    const { data: newListId, error: createError } = await supabase.rpc('create_list_with_member', {
+      list_name: newListName.trim(),
+    });
+
+    if (createError || !newListId) {
+      Alert.alert('Error', createError?.message ?? 'Failed to create list.');
       return;
     }
 
-    setAvailableLists(lists);
-    setListPickerVisible(true);
+    await addIngredientsToList({ id: newListId, name: newListName.trim() });
   };
 
   const addIngredientsToList = async (list: ListOption) => {
@@ -199,7 +211,7 @@ export default function RecipeDetailScreen() {
         onRequestClose={() => setListPickerVisible(false)}
       >
         <Pressable style={styles.modalOverlay} onPress={() => setListPickerVisible(false)}>
-          <View style={styles.modalContent}>
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <Text style={styles.modalTitle}>Add to List</Text>
             {availableLists.map((list) => (
               <TouchableOpacity
@@ -211,13 +223,36 @@ export default function RecipeDetailScreen() {
                 <Text style={styles.modalOptionText}>{list.name}</Text>
               </TouchableOpacity>
             ))}
+            {showNewListInput ? (
+              <View style={styles.newListRow}>
+                <TextInput
+                  style={styles.newListInput}
+                  placeholder="List name"
+                  value={newListName}
+                  onChangeText={setNewListName}
+                  autoFocus
+                  onSubmitEditing={createListAndAddIngredients}
+                />
+                <TouchableOpacity onPress={createListAndAddIngredients}>
+                  <Ionicons name="checkmark-circle" size={28} color="#007AFF" />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => setShowNewListInput(true)}
+              >
+                <Ionicons name="add-circle-outline" size={20} color="#34c759" />
+                <Text style={[styles.modalOptionText, { color: '#34c759' }]}>Create New List</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={styles.modalCancel}
               onPress={() => setListPickerVisible(false)}
             >
               <Text style={styles.modalCancelText}>Cancel</Text>
             </TouchableOpacity>
-          </View>
+          </Pressable>
         </Pressable>
       </Modal>
 
@@ -276,6 +311,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#eee',
   },
   modalOptionText: { fontSize: 16 },
+  newListRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#eee',
+  },
+  newListInput: {
+    flex: 1, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, fontSize: 15,
+  },
   modalCancel: { paddingVertical: 14, marginTop: 4 },
   modalCancelText: { fontSize: 16, color: '#888', textAlign: 'center' },
 });
