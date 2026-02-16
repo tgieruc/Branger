@@ -46,6 +46,9 @@ export default function LoginScreen() {
       <TouchableOpacity style={[styles.button, { backgroundColor: colors.primary }, loading && { opacity: 0.6 }]} onPress={handleLogin} disabled={loading}>
         <Text style={styles.buttonText}>{loading ? 'Signing in...' : 'Sign In'}</Text>
       </TouchableOpacity>
+      <Link href="/forgot-password" style={[styles.forgotLink, { color: colors.textSecondary }]}>
+        Forgot Password?
+      </Link>
       <Link href="/register" style={[styles.link, { color: colors.primary }]}>
         Don&apos;t have an account? Sign Up
       </Link>
@@ -64,5 +67,6 @@ const styles = StyleSheet.create({
     borderRadius: 8, padding: 16, alignItems: 'center',
   },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  forgotLink: { marginTop: 12, textAlign: 'center', fontSize: 14 },
   link: { marginTop: 16, textAlign: 'center' },
 });

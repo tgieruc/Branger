@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { useTheme, type ThemePreference } from '@/lib/theme';
 import { useColors } from '@/hooks/useColors';
@@ -17,6 +18,7 @@ export default function SettingsScreen() {
   const { user, signOut } = useAuth();
   const { preference, setPreference } = useTheme();
   const colors = useColors();
+  const router = useRouter();
   const [logoutVisible, setLogoutVisible] = useState(false);
 
   return (
@@ -32,6 +34,17 @@ export default function SettingsScreen() {
             <Text style={[styles.rowLabel, { color: colors.text }]}>Email</Text>
             <Text style={[styles.rowValue, { color: colors.textSecondary }]}>{user?.email}</Text>
           </View>
+          <View style={[styles.separator, { backgroundColor: colors.borderLight }]} />
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => router.push('/(tabs)/settings/change-password')}
+            accessibilityLabel="Change password"
+            accessibilityRole="button"
+          >
+            <Ionicons name="key-outline" size={20} color={colors.primary} style={styles.rowIcon} />
+            <Text style={[styles.rowLabel, { color: colors.text }]}>Change Password</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.chevron} style={{ marginLeft: 'auto' }} />
+          </TouchableOpacity>
         </View>
 
         {/* Appearance Section */}
@@ -133,6 +146,10 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     fontSize: 16,
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 16,
   },
   rowValue: {
     fontSize: 16,

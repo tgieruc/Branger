@@ -12,6 +12,7 @@ export default function SettingsLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ title: 'Settings' }} />
+      <Stack.Screen name="change-password" options={{ title: 'Change Password' }} />
     </Stack>
   );
 }
