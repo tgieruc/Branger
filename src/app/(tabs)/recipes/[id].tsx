@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Crypto from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { getCachedRecipeDetail, setCachedRecipeDetail } from '@/lib/cache';
@@ -86,7 +87,7 @@ export default function RecipeDetailScreen() {
     if (!recipe) return;
     let token = recipe.share_token;
     if (!token) {
-      token = globalThis.crypto.randomUUID();
+      token = Crypto.randomUUID();
       await supabase.from('recipes').update({ share_token: token }).eq('id', id!);
       setRecipe({ ...recipe, share_token: token });
     }
