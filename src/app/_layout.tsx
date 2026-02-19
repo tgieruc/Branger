@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 import { Slot, useRouter, useSegments } from 'expo-router';
-import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Updates from 'expo-updates';
 import { AuthProvider, useAuth } from '../lib/auth';
@@ -12,8 +11,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
-
-  const url = Linking.useURL();
 
   useEffect(() => {
     if (loading) return;
