@@ -10,7 +10,7 @@ type ScreenState = 'loading' | 'error' | 'ready';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ access_token?: string; refresh_token?: string }>();
+  const params = useLocalSearchParams<{ access_token?: string; refresh_token?: string; code?: string }>();
   const colors = useColors();
   const [state, setState] = useState<ScreenState>('loading');
   const [errorMessage, setErrorMessage] = useState('');
@@ -20,7 +20,20 @@ export default function ResetPasswordScreen() {
 
   useEffect(() => {
     const verifyTokens = async () => {
-      // Extract tokens from deep link params or web URL hash
+      // PKCE flow: exchange authorization code for session
+      const code = params.code as string | undefined;
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) {
+          setErrorMessage('This reset link has expired. Please request a new one.');
+          setState('error');
+          return;
+        }
+        setState('ready');
+        return;
+      }
+
+      // Implicit flow: extract tokens from deep link params or web URL hash
       let accessToken = params.access_token as string | undefined;
       let refreshToken = params.refresh_token as string | undefined;
 
@@ -59,7 +72,7 @@ export default function ResetPasswordScreen() {
     };
 
     verifyTokens();
-  }, [params.access_token, params.refresh_token]);
+  }, [params.access_token, params.refresh_token, params.code]);
 
   const handleResetPassword = async () => {
     if (password.length < 6) {
