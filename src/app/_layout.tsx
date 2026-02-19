@@ -38,28 +38,10 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [session, loading, segments, router]);
 
   // Handle deep links for password reset on native
-  // Supabase redirects to branger://reset-password#access_token=...&refresh_token=...
-  useEffect(() => {
-    if (!url) return;
-
-    const parsed = Linking.parse(url);
-    if (parsed.path !== 'reset-password') return;
-
-    // Supabase puts tokens in the hash fragment, not query params
-    const hashIndex = url.indexOf('#');
-    if (hashIndex === -1) return;
-
-    const hashParams = new URLSearchParams(url.substring(hashIndex + 1));
-    const accessToken = hashParams.get('access_token');
-    const refreshToken = hashParams.get('refresh_token');
-
-    if (accessToken && refreshToken) {
-      router.replace({
-        pathname: '/reset-password',
-        params: { access_token: accessToken, refresh_token: refreshToken },
-      });
-    }
-  }, [url, router]);
+  // With PKCE flow, the auth-callback edge function redirects to
+  // branger://reset-password?code=xxx (query params, not hash fragments)
+  // Expo Router automatically parses query params into useLocalSearchParams,
+  // so no manual parsing is needed here.
 
   if (loading) return null;
 

@@ -1,23 +1,20 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-Deno.serve(() => {
-  const html = `<!DOCTYPE html>
-<html>
-<head><title>Redirecting...</title></head>
-<body>
-<p>Redirecting to Branger...</p>
-<script>
-  const hash = window.location.hash.substring(1);
-  if (hash) {
-    window.location.replace('branger://reset-password?' + hash);
-  } else {
-    document.body.innerHTML = '<p>Invalid reset link.</p>';
-  }
-</script>
-</body>
-</html>`;
+Deno.serve((req) => {
+  const url = new URL(req.url);
 
-  return new Response(html, {
-    headers: { "Content-Type": "text/html" },
+  // Forward all query params to the app via deep link.
+  // PKCE flow sends ?code=xxx, which the app exchanges for a session.
+  if (url.search) {
+    return new Response(null, {
+      status: 302,
+      headers: { Location: `branger://reset-password${url.search}` },
+    });
+  }
+
+  // No params — something went wrong
+  return new Response("Invalid reset link. Please request a new one from the app.", {
+    status: 400,
+    headers: { "Content-Type": "text/plain" },
   });
 });
