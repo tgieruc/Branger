@@ -7,11 +7,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useColors } from '@/hooks/useColors';
+import { useToast } from '@/lib/toast';
 
 export default function ChangePasswordScreen() {
   const { user } = useAuth();
   const colors = useColors();
   const router = useRouter();
+  const toast = useToast();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -63,9 +65,8 @@ export default function ChangePasswordScreen() {
       return;
     }
 
-    Alert.alert('Success', 'Your password has been changed.', [
-      { text: 'OK', onPress: () => router.back() },
-    ]);
+    toast.show('Password changed successfully!');
+    router.back();
   };
 
   return (

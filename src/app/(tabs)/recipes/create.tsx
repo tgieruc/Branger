@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useColors } from '@/hooks/useColors';
 import { parseRecipeFromText, parseRecipeFromUrl, parseRecipeFromPhoto } from '@/lib/ai';
+import { useToast } from '@/lib/toast';
 
 type Ingredient = { id: string; name: string; description: string };
 type Step = { id: string; instruction: string };
@@ -28,6 +29,7 @@ export default function CreateRecipeScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const colors = useColors();
+  const toast = useToast();
 
   const [mode, setMode] = useState<Mode>('manual');
   const [title, setTitle] = useState('');
@@ -73,6 +75,7 @@ export default function CreateRecipeScreen() {
     try {
       const result = await parseRecipeFromText(aiText);
       populateFromAI(result, 'text');
+      toast.show('Recipe imported! Review and save.', 'info');
     } catch (e: any) {
       Alert.alert('Error', e.message);
     }
@@ -85,6 +88,7 @@ export default function CreateRecipeScreen() {
     try {
       const result = await parseRecipeFromUrl(aiUrl);
       populateFromAI(result, 'url');
+      toast.show('Recipe imported! Review and save.', 'info');
     } catch (e: any) {
       Alert.alert('Error', e.message);
     }
@@ -119,6 +123,7 @@ export default function CreateRecipeScreen() {
 
       const parsed = await parseRecipeFromPhoto(publicUrl);
       populateFromAI(parsed, 'photo');
+      toast.show('Recipe imported! Review and save.', 'info');
     } catch (e: any) {
       Alert.alert('Error', e.message);
     }
@@ -215,6 +220,7 @@ export default function CreateRecipeScreen() {
     }
 
     setSaving(false);
+    toast.show('Recipe saved!');
     router.back();
   };
 

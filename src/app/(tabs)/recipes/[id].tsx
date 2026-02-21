@@ -25,6 +25,7 @@ import type { RecipeWithDetails } from '@/lib/types';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { EmptyState } from '@/components/EmptyState';
 import { NotFound } from '@/components/illustrations/NotFound';
+import { useToast } from '@/lib/toast';
 
 type ListOption = { id: string; name: string };
 
@@ -33,6 +34,7 @@ export default function RecipeDetailScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const colors = useColors();
+  const toast = useToast();
   const [recipe, setRecipe] = useState<RecipeWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [listPickerVisible, setListPickerVisible] = useState(false);
@@ -157,7 +159,7 @@ export default function RecipeDetailScreen() {
       return;
     }
 
-    Alert.alert('Done', `Added ${recipe.ingredients.length} items to ${list.name}`);
+    toast.show(`Added ${recipe.ingredients.length} items to ${list.name}`);
   };
 
   if (loading) {
