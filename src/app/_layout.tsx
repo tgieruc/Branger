@@ -6,6 +6,8 @@ import * as Updates from 'expo-updates';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { NetInfoProvider } from '../lib/net-info';
 import { ThemeProvider } from '../lib/theme';
+import { ToastProvider } from '../lib/toast';
+import { ToastContainer } from '../components/Toast';
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
@@ -73,10 +75,13 @@ export default function RootLayout() {
     <ThemeProvider>
       <AuthProvider>
         <NetInfoProvider>
-          <OTAUpdater />
-          <AuthGuard>
-            <Slot />
-          </AuthGuard>
+          <ToastProvider>
+            <OTAUpdater />
+            <AuthGuard>
+              <Slot />
+            </AuthGuard>
+            <ToastContainer />
+          </ToastProvider>
         </NetInfoProvider>
       </AuthProvider>
     </ThemeProvider>
