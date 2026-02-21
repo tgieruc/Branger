@@ -41,6 +41,7 @@ export default function RecipeDetailScreen() {
   const [availableLists, setAvailableLists] = useState<ListOption[]>([]);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [showNewListInput, setShowNewListInput] = useState(false);
+  const [addingToList, setAddingToList] = useState(false);
   const [newListName, setNewListName] = useState('');
 
   const fetchRecipe = useCallback(async () => {
@@ -142,7 +143,8 @@ export default function RecipeDetailScreen() {
   };
 
   const addIngredientsToList = async (list: ListOption) => {
-    if (!recipe) return;
+    if (!recipe || addingToList) return;
+    setAddingToList(true);
     setListPickerVisible(false);
 
     const { error } = await supabase.rpc('add_items_to_list', {
@@ -153,6 +155,8 @@ export default function RecipeDetailScreen() {
         recipe_id: recipe.id,
       })),
     });
+
+    setAddingToList(false);
 
     if (error) {
       Alert.alert('Error', 'Failed to add ingredients to list.');
@@ -209,7 +213,7 @@ export default function RecipeDetailScreen() {
           <Image source={{ uri: recipe.photo_url }} style={styles.image} />
         )}
 
-        <TouchableOpacity onPress={handleAddToList} style={[styles.addToListButton, { backgroundColor: colors.addToListBg, borderColor: colors.addToListBorder }]} accessibilityLabel="Add ingredients to shopping list" accessibilityRole="button">
+        <TouchableOpacity onPress={handleAddToList} style={[styles.addToListButton, { backgroundColor: colors.addToListBg, borderColor: colors.addToListBorder }, addingToList && { opacity: 0.6 }]} disabled={addingToList} accessibilityLabel="Add ingredients to shopping list" accessibilityRole="button">
           <Ionicons name="cart-outline" size={20} color={colors.primary} />
           <Text style={[styles.addToListText, { color: colors.primary }]}>Add to Shopping List</Text>
         </TouchableOpacity>
@@ -240,6 +244,11 @@ export default function RecipeDetailScreen() {
         <Pressable style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]} onPress={() => setListPickerVisible(false)}>
           <Pressable style={[styles.modalContent, { backgroundColor: colors.modalBackground }]} onPress={(e) => e.stopPropagation()}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Add to List</Text>
+            {availableLists.length === 0 && !showNewListInput && (
+              <Text style={[styles.modalEmptyText, { color: colors.textTertiary }]}>
+                You don&apos;t have any lists yet. Create one below!
+              </Text>
+            )}
             {availableLists.map((list) => (
               <TouchableOpacity
                 key={list.id}
@@ -346,6 +355,7 @@ const styles = StyleSheet.create({
   newListInput: {
     flex: 1, borderWidth: 1, borderRadius: 8, padding: 10, fontSize: 15,
   },
+  modalEmptyText: { fontSize: 15, textAlign: 'center', paddingVertical: 12 },
   modalCancel: { paddingVertical: 14, marginTop: 4 },
   modalCancelText: { fontSize: 16, textAlign: 'center' },
 });
