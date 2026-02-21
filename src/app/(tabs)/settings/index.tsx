@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth';
@@ -20,6 +21,18 @@ export default function SettingsScreen() {
   const colors = useColors();
   const router = useRouter();
   const [logoutVisible, setLogoutVisible] = useState(false);
+  const [controlWidth, setControlWidth] = useState(0);
+
+  const themeIndex = THEME_OPTIONS.findIndex((o) => o.value === preference);
+
+  const indicatorStyle = useAnimatedStyle(() => {
+    if (controlWidth === 0) return {};
+    const segWidth = (controlWidth - 4) / THEME_OPTIONS.length;
+    return {
+      width: segWidth,
+      transform: [{ translateX: withTiming(themeIndex * segWidth, { duration: 200 }) }],
+    };
+  });
 
   return (
     <>
@@ -52,16 +65,23 @@ export default function SettingsScreen() {
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
           <View style={styles.segmentRow}>
             <Text style={[styles.rowLabel, { color: colors.text }]}>Theme</Text>
-            <View style={[styles.segmentControl, { backgroundColor: colors.backgroundSecondary }]}>
+            <View
+              style={[styles.segmentControl, { backgroundColor: colors.backgroundSecondary }]}
+              onLayout={(e) => setControlWidth(e.nativeEvent.layout.width)}
+            >
+              <Animated.View
+                style={[
+                  styles.segmentIndicator,
+                  { backgroundColor: colors.card },
+                  indicatorStyle,
+                ]}
+              />
               {THEME_OPTIONS.map((option) => {
                 const selected = preference === option.value;
                 return (
                   <TouchableOpacity
                     key={option.value}
-                    style={[
-                      styles.segmentButton,
-                      selected && [styles.segmentSelected, { backgroundColor: colors.card }],
-                    ]}
+                    style={styles.segmentButton}
                     onPress={() => setPreference(option.value)}
                     accessibilityLabel={`Theme: ${option.label}`}
                     accessibilityRole="button"
@@ -168,14 +188,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderRadius: 8,
     padding: 2,
+    position: 'relative',
+  },
+  segmentIndicator: {
+    position: 'absolute',
+    top: 2,
+    bottom: 2,
+    left: 2,
+    borderRadius: 6,
+    ...shadow(1, 2, 0.1),
   },
   segmentButton: {
-    paddingHorizontal: 14,
+    flex: 1,
     paddingVertical: 6,
     borderRadius: 6,
-  },
-  segmentSelected: {
-    ...shadow(1, 2, 0.1),
+    alignItems: 'center',
   },
   segmentText: {
     fontSize: 14,
