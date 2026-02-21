@@ -23,6 +23,8 @@ import { getCachedRecipeDetail, setCachedRecipeDetail } from '@/lib/cache';
 import { useColors } from '@/hooks/useColors';
 import type { RecipeWithDetails } from '@/lib/types';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { EmptyState } from '@/components/EmptyState';
+import { NotFound } from '@/components/illustrations/NotFound';
 
 type ListOption = { id: string; name: string };
 
@@ -160,7 +162,7 @@ export default function RecipeDetailScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" />
       </View>
     );
@@ -168,8 +170,14 @@ export default function RecipeDetailScreen() {
 
   if (!recipe) {
     return (
-      <View style={styles.center}>
-        <Text>Recipe not found</Text>
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <EmptyState
+          illustration={<NotFound />}
+          title="Recipe not found"
+          subtitle="This recipe may have been deleted"
+          actionLabel="Go Back"
+          onAction={() => router.back()}
+        />
       </View>
     );
   }

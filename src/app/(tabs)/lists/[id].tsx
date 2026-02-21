@@ -13,6 +13,7 @@ import type { ShoppingList, ListItem, ListMember } from '@/lib/types';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useColors } from '@/hooks/useColors';
+import { EmptyChecklist } from '@/components/illustrations/EmptyChecklist';
 
 export default function ListDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -203,7 +204,7 @@ export default function ListDetailScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" />
       </View>
     );
@@ -248,6 +249,14 @@ export default function ListDetailScreen() {
         keyExtractor={(item) => item.id}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
+        ListEmptyComponent={
+          <View style={styles.emptyList}>
+            <EmptyChecklist />
+            <Text style={[styles.emptyListText, { color: colors.textTertiary }]}>
+              This list is empty. Add items below!
+            </Text>
+          </View>
+        }
         renderItem={({ item }) => (
           <TouchableOpacity
             style={[styles.itemRow, { borderBottomColor: colors.borderLight }]}
@@ -361,4 +370,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8, paddingHorizontal: 16, gap: 8,
   },
   offlineBannerText: { fontSize: 13 },
+  emptyList: { alignItems: 'center', paddingTop: 64 },
+  emptyListText: { fontSize: 15, marginTop: 16, textAlign: 'center' },
 });

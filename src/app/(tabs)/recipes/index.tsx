@@ -9,19 +9,22 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { Link, useFocusEffect } from 'expo-router';
+import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { RecipeCard } from '@/components/RecipeCard';
 import { getCachedRecipeList, setCachedRecipeList } from '@/lib/cache';
 import { useColors } from '@/hooks/useColors';
 import { shadow } from '@/constants/theme';
+import { EmptyState } from '@/components/EmptyState';
+import { EmptyCookbook } from '@/components/illustrations/EmptyCookbook';
 import type { Recipe } from '@/lib/types';
 
 const PAGE_SIZE = 20;
 
 export default function RecipesScreen() {
   const colors = useColors();
+  const router = useRouter();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -120,7 +123,7 @@ export default function RecipesScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" />
       </View>
     );
@@ -161,11 +164,19 @@ export default function RecipesScreen() {
         onEndReachedThreshold={0.5}
         ListFooterComponent={loadingMore ? <ActivityIndicator style={{ padding: 16 }} /> : null}
         ListEmptyComponent={
-          <Text style={[styles.empty, { color: colors.textTertiary }]}>
-            {searchQuery.length > 0
-              ? 'No recipes match your search.'
-              : 'No recipes yet. Tap + to create one.'}
-          </Text>
+          searchQuery.length > 0 ? (
+            <Text style={[styles.empty, { color: colors.textTertiary }]}>
+              No recipes match your search.
+            </Text>
+          ) : (
+            <EmptyState
+              illustration={<EmptyCookbook />}
+              title="Your cookbook is empty"
+              subtitle="Import a recipe from a URL, photo, or add one manually"
+              actionLabel="Add Your First Recipe"
+              onAction={() => router.push('/(tabs)/recipes/create')}
+            />
+          )
         }
       />
       <Link href="/(tabs)/recipes/create" asChild>

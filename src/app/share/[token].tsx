@@ -7,6 +7,8 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import type { RecipeWithDetails } from '@/lib/types';
 import { useColors } from '@/hooks/useColors';
+import { EmptyState } from '@/components/EmptyState';
+import { NotFound } from '@/components/illustrations/NotFound';
 
 export default function SharedRecipeScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
@@ -92,11 +94,21 @@ export default function SharedRecipeScreen() {
   };
 
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator size="large" /></View>;
+    return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator size="large" /></View>;
   }
 
   if (!recipe) {
-    return <View style={styles.center}><Text style={{ color: colors.text }}>Recipe not found or link expired.</Text></View>;
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <EmptyState
+          illustration={<NotFound />}
+          title="Recipe not found"
+          subtitle="This recipe may have been deleted or the link has expired"
+          actionLabel="Go Back"
+          onAction={() => router.back()}
+        />
+      </View>
+    );
   }
 
   return (

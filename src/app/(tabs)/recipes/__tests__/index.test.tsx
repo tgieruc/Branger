@@ -33,6 +33,7 @@ jest.mock('@/lib/cache', () => ({
 }));
 jest.mock('expo-router', () => ({
   Link: jest.fn().mockImplementation(({ children }) => children),
+  useRouter: jest.fn().mockReturnValue({ push: jest.fn(), back: jest.fn() }),
   useFocusEffect: (cb: () => void) => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { useEffect } = require('react');
@@ -109,7 +110,7 @@ describe('RecipesScreen', () => {
     const { getByText } = render(<RecipesScreen />);
 
     await waitFor(() => {
-      expect(getByText('No recipes yet. Tap + to create one.')).toBeTruthy();
+      expect(getByText('Your cookbook is empty')).toBeTruthy();
     });
   });
 
