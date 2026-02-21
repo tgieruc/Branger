@@ -103,6 +103,7 @@ export default function SettingsScreen() {
         title="Sign Out"
         message="Are you sure you want to sign out?"
         confirmLabel="Sign Out"
+        destructive={false}
         onConfirm={() => { setLogoutVisible(false); signOut(); }}
         onCancel={() => setLogoutVisible(false)}
       />

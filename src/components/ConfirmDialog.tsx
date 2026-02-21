@@ -6,12 +6,13 @@ type Props = {
   title: string;
   message: string;
   confirmLabel?: string;
+  destructive?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 };
 
 export default function ConfirmDialog({
-  visible, title, message, confirmLabel = 'Delete', onConfirm, onCancel,
+  visible, title, message, confirmLabel = 'Delete', destructive = true, onConfirm, onCancel,
 }: Props) {
   const colors = useColors();
 
@@ -25,7 +26,7 @@ export default function ConfirmDialog({
             <TouchableOpacity style={[styles.cancelBtn, { backgroundColor: colors.cancelButton }]} onPress={onCancel}>
               <Text style={[styles.cancelText, { color: colors.cancelText }]}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.confirmBtn, { backgroundColor: colors.danger }]} onPress={onConfirm}>
+            <TouchableOpacity style={[styles.confirmBtn, { backgroundColor: destructive ? colors.danger : colors.primary }]} onPress={onConfirm}>
               <Text style={[styles.confirmText, { color: colors.buttonText }]}>{confirmLabel}</Text>
             </TouchableOpacity>
           </View>
