@@ -1,6 +1,7 @@
 import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
+import { HapticTab } from '@/components/haptic-tab';
 
 export default function TabLayout() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: colors.primary,
         tabBarStyle: { backgroundColor: colors.tabBarBackground, borderTopColor: colors.tabBarBorder },
         sceneStyle: { backgroundColor: colors.background },
+        tabBarButton: HapticTab,
       }}
     >
       <Tabs.Screen
