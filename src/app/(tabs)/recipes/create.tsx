@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
@@ -27,9 +27,11 @@ const MODES: { key: Mode; label: string; icon: string }[] = [
 
 export default function CreateRecipeScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const { user } = useAuth();
   const colors = useColors();
   const toast = useToast();
+  const isDirty = useRef(false);
 
   const [mode, setMode] = useState<Mode>('manual');
   const [title, setTitle] = useState('');
@@ -45,6 +47,24 @@ export default function CreateRecipeScreen() {
   // Track which mode created the recipe for source_type
   const [sourceMode, setSourceMode] = useState<Mode>('manual');
   const keyboardHeight = useKeyboardHeight();
+
+  // Track dirty state
+  useEffect(() => {
+    isDirty.current = title.trim() !== '' || ingredients.some(i => i.name.trim() !== '') || steps.some(s => s.instruction.trim() !== '');
+  }, [title, ingredients, steps]);
+
+  // Navigation guard
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+      if (!isDirty.current || saving) return;
+      e.preventDefault();
+      Alert.alert('Discard changes?', 'You have unsaved changes. Are you sure you want to leave?', [
+        { text: 'Stay', style: 'cancel' },
+        { text: 'Discard', style: 'destructive', onPress: () => navigation.dispatch(e.data.action) },
+      ]);
+    });
+    return unsubscribe;
+  }, [navigation, saving]);
 
   const sourceTypeMap: Record<Mode, string> = {
     manual: 'manual',
@@ -221,6 +241,7 @@ export default function CreateRecipeScreen() {
 
     setSaving(false);
     toast.show('Recipe saved!');
+    isDirty.current = false;
     router.back();
   };
 
