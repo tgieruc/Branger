@@ -260,7 +260,7 @@ export default function CreateRecipeScreen() {
                 onChangeText={setAiText}
                 multiline
               />
-              <TouchableOpacity style={[styles.aiButton, { backgroundColor: colors.aiPurple }]} onPress={handleAiText}>
+              <TouchableOpacity style={[styles.aiButton, { backgroundColor: colors.primary }]} onPress={handleAiText}>
                 <Text style={[styles.aiButtonText, { color: colors.buttonText }]}>Generate Recipe</Text>
               </TouchableOpacity>
             </View>
@@ -278,7 +278,7 @@ export default function CreateRecipeScreen() {
                 autoCapitalize="none"
                 keyboardType="url"
               />
-              <TouchableOpacity style={[styles.aiButton, { backgroundColor: colors.aiPurple }]} onPress={handleAiUrl}>
+              <TouchableOpacity style={[styles.aiButton, { backgroundColor: colors.primary }]} onPress={handleAiUrl}>
                 <Text style={[styles.aiButtonText, { color: colors.buttonText }]}>Import Recipe</Text>
               </TouchableOpacity>
             </View>
