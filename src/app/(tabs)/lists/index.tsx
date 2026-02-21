@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Link, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
@@ -24,6 +25,7 @@ type ListSummary = {
 export default function ListsScreen() {
   const { user } = useAuth();
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const [lists, setLists] = useState<ListSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -196,7 +198,7 @@ export default function ListsScreen() {
         </View>
       ) : (
         <TouchableOpacity
-          style={[styles.fab, { backgroundColor: colors.primary }]}
+          style={[styles.fab, { backgroundColor: colors.primary, bottom: Math.max(24, insets.bottom + 8) }]}
           onPress={() => setShowCreate(true)}
           accessibilityLabel="Create new list"
           accessibilityRole="button"

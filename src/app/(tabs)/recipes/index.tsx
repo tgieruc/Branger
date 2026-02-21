@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { RecipeCard } from '@/components/RecipeCard';
 import { getCachedRecipeList, setCachedRecipeList } from '@/lib/cache';
@@ -25,6 +26,7 @@ const PAGE_SIZE = 20;
 export default function RecipesScreen() {
   const colors = useColors();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -181,7 +183,7 @@ export default function RecipesScreen() {
       />
       <Link href="/(tabs)/recipes/create" asChild>
         <TouchableOpacity
-          style={StyleSheet.flatten([styles.fab, { backgroundColor: colors.primary }])}
+          style={StyleSheet.flatten([styles.fab, { backgroundColor: colors.primary, bottom: Math.max(24, insets.bottom + 8) }])}
           accessibilityLabel="Create new recipe"
           accessibilityRole="button"
         >
