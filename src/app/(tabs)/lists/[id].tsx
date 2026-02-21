@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator,
-  Platform, Share, Alert,
+  Platform, Share, Alert, RefreshControl,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,6 +30,8 @@ export default function ListDetailScreen() {
   const [newItemDesc, setNewItemDesc] = useState('');
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
   const [deleteListVisible, setDeleteListVisible] = useState(false);
+  const [clearCheckedVisible, setClearCheckedVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const keyboardHeight = useKeyboardHeight();
 
   const fetchData = useCallback(async () => {
@@ -249,6 +251,13 @@ export default function ListDetailScreen() {
         keyExtractor={(item) => item.id}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={async () => {
+            setRefreshing(true);
+            await fetchData();
+            setRefreshing(false);
+          }} />
+        }
         ListEmptyComponent={
           <View style={styles.emptyList}>
             <EmptyChecklist />
@@ -288,7 +297,7 @@ export default function ListDetailScreen() {
         )}
         ListFooterComponent={
           checkedCount > 0 ? (
-            <TouchableOpacity onPress={clearChecked} style={styles.clearChecked}>
+            <TouchableOpacity onPress={() => setClearCheckedVisible(true)} style={styles.clearChecked}>
               <Text style={[styles.clearCheckedText, { color: colors.danger }]}>
                 Clear {checkedCount} checked item{checkedCount !== 1 ? 's' : ''}
               </Text>
@@ -325,6 +334,15 @@ export default function ListDetailScreen() {
         message="Remove this item from the list?"
         onConfirm={confirmDeleteItem}
         onCancel={() => setDeleteItemId(null)}
+      />
+
+      <ConfirmDialog
+        visible={clearCheckedVisible}
+        title="Clear Checked Items"
+        message={`Remove ${checkedCount} checked item${checkedCount !== 1 ? 's' : ''} from the list?`}
+        confirmLabel="Clear"
+        onConfirm={() => { setClearCheckedVisible(false); clearChecked(); }}
+        onCancel={() => setClearCheckedVisible(false)}
       />
 
       <ConfirmDialog
