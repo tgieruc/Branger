@@ -7,13 +7,14 @@ import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import * as Crypto from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useColors } from '@/hooks/useColors';
 import { parseRecipeFromText, parseRecipeFromUrl, parseRecipeFromPhoto } from '@/lib/ai';
 
-type Ingredient = { name: string; description: string };
-type Step = { instruction: string };
+type Ingredient = { id: string; name: string; description: string };
+type Step = { id: string; instruction: string };
 type Mode = 'manual' | 'text' | 'url' | 'photo';
 
 const MODES: { key: Mode; label: string; icon: string }[] = [
@@ -30,8 +31,8 @@ export default function CreateRecipeScreen() {
 
   const [mode, setMode] = useState<Mode>('manual');
   const [title, setTitle] = useState('');
-  const [ingredients, setIngredients] = useState<Ingredient[]>([{ name: '', description: '' }]);
-  const [steps, setSteps] = useState<Step[]>([{ instruction: '' }]);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([{ id: Crypto.randomUUID(), name: '', description: '' }]);
+  const [steps, setSteps] = useState<Step[]>([{ id: Crypto.randomUUID(), instruction: '' }]);
   const [saving, setSaving] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
 
@@ -54,13 +55,13 @@ export default function CreateRecipeScreen() {
     setTitle(result.title);
     setIngredients(
       result.ingredients.length > 0
-        ? result.ingredients
-        : [{ name: '', description: '' }]
+        ? result.ingredients.map((i) => ({ ...i, id: Crypto.randomUUID() }))
+        : [{ id: Crypto.randomUUID(), name: '', description: '' }]
     );
     setSteps(
       result.steps.length > 0
-        ? result.steps.map((s) => ({ instruction: s }))
-        : [{ instruction: '' }]
+        ? result.steps.map((s) => ({ id: Crypto.randomUUID(), instruction: s }))
+        : [{ id: Crypto.randomUUID(), instruction: '' }]
     );
     setSourceMode(fromMode);
     setMode('manual'); // Switch to form for review
@@ -154,16 +155,16 @@ export default function CreateRecipeScreen() {
   };
 
   // --- Ingredient/step helpers ---
-  const addIngredient = () => setIngredients([...ingredients, { name: '', description: '' }]);
-  const updateIngredient = (i: number, field: keyof Ingredient, value: string) => {
+  const addIngredient = () => setIngredients([...ingredients, { id: Crypto.randomUUID(), name: '', description: '' }]);
+  const updateIngredient = (i: number, field: 'name' | 'description', value: string) => {
     const u = [...ingredients]; u[i][field] = value; setIngredients(u);
   };
-  const removeIngredient = (i: number) => setIngredients(ingredients.filter((_, idx) => idx !== i));
-  const addStep = () => setSteps([...steps, { instruction: '' }]);
+  const removeIngredient = (id: string) => setIngredients(ingredients.filter((ing) => ing.id !== id));
+  const addStep = () => setSteps([...steps, { id: Crypto.randomUUID(), instruction: '' }]);
   const updateStep = (i: number, v: string) => {
     const u = [...steps]; u[i].instruction = v; setSteps(u);
   };
-  const removeStep = (i: number) => setSteps(steps.filter((_, idx) => idx !== i));
+  const removeStep = (id: string) => setSteps(steps.filter((s) => s.id !== id));
 
   const handleSave = async () => {
     if (!title.trim()) { Alert.alert('Error', 'Please enter a title'); return; }
@@ -301,10 +302,10 @@ export default function CreateRecipeScreen() {
 
               <Text style={[styles.label, { color: colors.text }]}>Ingredients</Text>
               {ingredients.map((ing, i) => (
-                <View key={i} style={styles.row}>
+                <View key={ing.id} style={styles.row}>
                   <TextInput style={[styles.input, { flex: 1, marginRight: 8, borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]} placeholder="Item" placeholderTextColor={colors.placeholder} value={ing.name} onChangeText={(v) => updateIngredient(i, 'name', v)} />
                   <TextInput style={[styles.input, { flex: 1, marginRight: 8, borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]} placeholder="Qty / notes" placeholderTextColor={colors.placeholder} value={ing.description} onChangeText={(v) => updateIngredient(i, 'description', v)} />
-                  <TouchableOpacity onPress={() => removeIngredient(i)}>
+                  <TouchableOpacity onPress={() => removeIngredient(ing.id)}>
                     <Ionicons name="close-circle" size={24} color={colors.danger} />
                   </TouchableOpacity>
                 </View>
@@ -316,10 +317,10 @@ export default function CreateRecipeScreen() {
 
               <Text style={[styles.label, { color: colors.text }]}>Steps</Text>
               {steps.map((step, i) => (
-                <View key={i} style={styles.row}>
+                <View key={step.id} style={styles.row}>
                   <Text style={[styles.stepNumber, { color: colors.text }]}>{i + 1}.</Text>
                   <TextInput style={[styles.input, { flex: 1, marginRight: 8, borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]} placeholder="Instruction" placeholderTextColor={colors.placeholder} value={step.instruction} onChangeText={(v) => updateStep(i, v)} multiline />
-                  <TouchableOpacity onPress={() => removeStep(i)}>
+                  <TouchableOpacity onPress={() => removeStep(step.id)}>
                     <Ionicons name="close-circle" size={24} color={colors.danger} />
                   </TouchableOpacity>
                 </View>
