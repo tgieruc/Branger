@@ -11,7 +11,7 @@ import * as Crypto from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useColors } from '@/hooks/useColors';
-import { parseRecipeFromText, parseRecipeFromUrl, parseRecipeFromPhoto, parseRecipeFromPhotos } from '@/lib/ai';
+import { parseRecipeFromText, parseRecipeFromUrl, parseRecipeFromPhotos } from '@/lib/ai';
 import { useToast } from '@/lib/toast';
 
 type Ingredient = { id: string; name: string; description: string };
