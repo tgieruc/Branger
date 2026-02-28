@@ -33,6 +33,7 @@ jest.mock('@/lib/cache', () => ({
 }));
 jest.mock('expo-router', () => ({
   Link: jest.fn().mockImplementation(({ children }) => children),
+  useRouter: jest.fn().mockReturnValue({ push: jest.fn(), back: jest.fn() }),
   useFocusEffect: (cb: () => void) => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { useEffect } = require('react');
@@ -42,6 +43,9 @@ jest.mock('expo-router', () => ({
 }));
 jest.mock('@expo/vector-icons', () => ({
   Ionicons: 'Ionicons',
+}));
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('@/components/RecipeCard', () => ({
   RecipeCard: ({ recipe }: { recipe: Recipe }) => {
@@ -109,7 +113,7 @@ describe('RecipesScreen', () => {
     const { getByText } = render(<RecipesScreen />);
 
     await waitFor(() => {
-      expect(getByText('No recipes yet. Tap + to create one.')).toBeTruthy();
+      expect(getByText('Your cookbook is empty')).toBeTruthy();
     });
   });
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator,
-  Platform, Share, Alert,
+  Platform, Share, Alert, RefreshControl,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,7 @@ import type { ShoppingList, ListItem, ListMember } from '@/lib/types';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useColors } from '@/hooks/useColors';
+import { EmptyChecklist } from '@/components/illustrations/EmptyChecklist';
 
 export default function ListDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -29,6 +30,8 @@ export default function ListDetailScreen() {
   const [newItemDesc, setNewItemDesc] = useState('');
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
   const [deleteListVisible, setDeleteListVisible] = useState(false);
+  const [clearCheckedVisible, setClearCheckedVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const keyboardHeight = useKeyboardHeight();
 
   const fetchData = useCallback(async () => {
@@ -203,7 +206,7 @@ export default function ListDetailScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" />
       </View>
     );
@@ -248,6 +251,21 @@ export default function ListDetailScreen() {
         keyExtractor={(item) => item.id}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={async () => {
+            setRefreshing(true);
+            await fetchData();
+            setRefreshing(false);
+          }} />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyList}>
+            <EmptyChecklist />
+            <Text style={[styles.emptyListText, { color: colors.textTertiary }]}>
+              This list is empty. Add items below!
+            </Text>
+          </View>
+        }
         renderItem={({ item }) => (
           <TouchableOpacity
             style={[styles.itemRow, { borderBottomColor: colors.borderLight }]}
@@ -279,7 +297,7 @@ export default function ListDetailScreen() {
         )}
         ListFooterComponent={
           checkedCount > 0 ? (
-            <TouchableOpacity onPress={clearChecked} style={styles.clearChecked}>
+            <TouchableOpacity onPress={() => setClearCheckedVisible(true)} style={styles.clearChecked}>
               <Text style={[styles.clearCheckedText, { color: colors.danger }]}>
                 Clear {checkedCount} checked item{checkedCount !== 1 ? 's' : ''}
               </Text>
@@ -316,6 +334,15 @@ export default function ListDetailScreen() {
         message="Remove this item from the list?"
         onConfirm={confirmDeleteItem}
         onCancel={() => setDeleteItemId(null)}
+      />
+
+      <ConfirmDialog
+        visible={clearCheckedVisible}
+        title="Clear Checked Items"
+        message={`Remove ${checkedCount} checked item${checkedCount !== 1 ? 's' : ''} from the list?`}
+        confirmLabel="Clear"
+        onConfirm={() => { setClearCheckedVisible(false); clearChecked(); }}
+        onCancel={() => setClearCheckedVisible(false)}
       />
 
       <ConfirmDialog
@@ -361,4 +388,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8, paddingHorizontal: 16, gap: 8,
   },
   offlineBannerText: { fontSize: 13 },
+  emptyList: { alignItems: 'center', paddingTop: 64 },
+  emptyListText: { fontSize: 15, marginTop: 16, textAlign: 'center' },
 });

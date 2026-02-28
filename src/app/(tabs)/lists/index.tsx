@@ -5,12 +5,15 @@ import {
 } from 'react-native';
 import { Link, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useColors } from '@/hooks/useColors';
 import { shadow } from '@/constants/theme';
+import { EmptyState } from '@/components/EmptyState';
+import { EmptyShoppingBag } from '@/components/illustrations/EmptyShoppingBag';
 
 type ListSummary = {
   id: string;
@@ -22,6 +25,7 @@ type ListSummary = {
 export default function ListsScreen() {
   const { user } = useAuth();
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const [lists, setLists] = useState<ListSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -123,7 +127,7 @@ export default function ListsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" />
       </View>
     );
@@ -164,7 +168,13 @@ export default function ListsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         ListEmptyComponent={
-          <Text style={[styles.empty, { color: colors.textTertiary }]}>No lists yet. Tap + to create one.</Text>
+          <EmptyState
+            illustration={<EmptyShoppingBag />}
+            title="No shopping lists yet"
+            subtitle="Create a list and add ingredients from your recipes"
+            actionLabel="Create a List"
+            onAction={() => setShowCreate(true)}
+          />
         }
       />
 
@@ -188,7 +198,7 @@ export default function ListsScreen() {
         </View>
       ) : (
         <TouchableOpacity
-          style={[styles.fab, { backgroundColor: colors.primary }]}
+          style={[styles.fab, { backgroundColor: colors.primary, bottom: Math.max(24, insets.bottom + 8) }]}
           onPress={() => setShowCreate(true)}
           accessibilityLabel="Create new list"
           accessibilityRole="button"

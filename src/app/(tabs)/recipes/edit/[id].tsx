@@ -7,12 +7,13 @@ import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import * as Crypto from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useColors } from '@/hooks/useColors';
 
-type Ingredient = { name: string; description: string };
-type Step = { instruction: string };
+type Ingredient = { id: string; name: string; description: string };
+type Step = { id: string; instruction: string };
 
 export default function EditRecipeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,8 +25,8 @@ export default function EditRecipeScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState('');
-  const [ingredients, setIngredients] = useState<Ingredient[]>([{ name: '', description: '' }]);
-  const [steps, setSteps] = useState<Step[]>([{ instruction: '' }]);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([{ id: Crypto.randomUUID(), name: '', description: '' }]);
+  const [steps, setSteps] = useState<Step[]>([{ id: Crypto.randomUUID(), instruction: '' }]);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
   const fetchRecipe = useCallback(async () => {
@@ -45,15 +46,17 @@ export default function EditRecipeScreen() {
     setPhotoUrl(recipeRes.data.photo_url);
 
     const ings = (ingredientsRes.data ?? []).map((i) => ({
+      id: Crypto.randomUUID(),
       name: i.name,
       description: i.description ?? '',
     }));
-    setIngredients(ings.length > 0 ? ings : [{ name: '', description: '' }]);
+    setIngredients(ings.length > 0 ? ings : [{ id: Crypto.randomUUID(), name: '', description: '' }]);
 
     const stps = (stepsRes.data ?? []).map((s) => ({
+      id: Crypto.randomUUID(),
       instruction: s.instruction,
     }));
-    setSteps(stps.length > 0 ? stps : [{ instruction: '' }]);
+    setSteps(stps.length > 0 ? stps : [{ id: Crypto.randomUUID(), instruction: '' }]);
 
     setLoading(false);
   }, [id, router]);
@@ -128,16 +131,16 @@ export default function EditRecipeScreen() {
   };
 
   // --- Ingredient/step helpers ---
-  const addIngredient = () => setIngredients([...ingredients, { name: '', description: '' }]);
-  const updateIngredient = (i: number, field: keyof Ingredient, value: string) => {
+  const addIngredient = () => setIngredients([...ingredients, { id: Crypto.randomUUID(), name: '', description: '' }]);
+  const updateIngredient = (i: number, field: 'name' | 'description', value: string) => {
     const u = [...ingredients]; u[i][field] = value; setIngredients(u);
   };
-  const removeIngredient = (i: number) => setIngredients(ingredients.filter((_, idx) => idx !== i));
-  const addStep = () => setSteps([...steps, { instruction: '' }]);
+  const removeIngredient = (id: string) => setIngredients(ingredients.filter((ing) => ing.id !== id));
+  const addStep = () => setSteps([...steps, { id: Crypto.randomUUID(), instruction: '' }]);
   const updateStep = (i: number, v: string) => {
     const u = [...steps]; u[i].instruction = v; setSteps(u);
   };
-  const removeStep = (i: number) => setSteps(steps.filter((_, idx) => idx !== i));
+  const removeStep = (id: string) => setSteps(steps.filter((s) => s.id !== id));
 
   const handleSave = async () => {
     if (!title.trim()) { Alert.alert('Error', 'Please enter a title'); return; }
@@ -260,10 +263,10 @@ export default function EditRecipeScreen() {
 
         <Text style={[styles.label, { color: colors.text }]}>Ingredients</Text>
         {ingredients.map((ing, i) => (
-          <View key={i} style={styles.row}>
+          <View key={ing.id} style={styles.row}>
             <TextInput style={[styles.input, { flex: 1, marginRight: 8, borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]} placeholder="Item" placeholderTextColor={colors.placeholder} value={ing.name} onChangeText={(v) => updateIngredient(i, 'name', v)} />
             <TextInput style={[styles.input, { flex: 1, marginRight: 8, borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]} placeholder="Qty / notes" placeholderTextColor={colors.placeholder} value={ing.description} onChangeText={(v) => updateIngredient(i, 'description', v)} />
-            <TouchableOpacity onPress={() => removeIngredient(i)} accessibilityLabel="Remove ingredient" accessibilityRole="button">
+            <TouchableOpacity onPress={() => removeIngredient(ing.id)} accessibilityLabel="Remove ingredient" accessibilityRole="button">
               <Ionicons name="close-circle" size={24} color={colors.danger} />
             </TouchableOpacity>
           </View>
@@ -275,10 +278,10 @@ export default function EditRecipeScreen() {
 
         <Text style={[styles.label, { color: colors.text }]}>Steps</Text>
         {steps.map((step, i) => (
-          <View key={i} style={styles.row}>
+          <View key={step.id} style={styles.row}>
             <Text style={[styles.stepNumber, { color: colors.text }]}>{i + 1}.</Text>
             <TextInput style={[styles.input, { flex: 1, marginRight: 8, borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]} placeholder="Instruction" placeholderTextColor={colors.placeholder} value={step.instruction} onChangeText={(v) => updateStep(i, v)} multiline />
-            <TouchableOpacity onPress={() => removeStep(i)} accessibilityLabel="Remove step" accessibilityRole="button">
+            <TouchableOpacity onPress={() => removeStep(step.id)} accessibilityLabel="Remove step" accessibilityRole="button">
               <Ionicons name="close-circle" size={24} color={colors.danger} />
             </TouchableOpacity>
           </View>

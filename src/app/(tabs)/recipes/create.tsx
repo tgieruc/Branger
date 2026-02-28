@@ -1,20 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert,
-  ActivityIndicator,
+  ActivityIndicator, Image,
 } from 'react-native';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import * as Crypto from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useColors } from '@/hooks/useColors';
-import { parseRecipeFromText, parseRecipeFromUrl, parseRecipeFromPhoto } from '@/lib/ai';
+import { parseRecipeFromText, parseRecipeFromUrl, parseRecipeFromPhotos } from '@/lib/ai';
+import { useToast } from '@/lib/toast';
 
-type Ingredient = { name: string; description: string };
-type Step = { instruction: string };
+type Ingredient = { id: string; name: string; description: string };
+type Step = { id: string; instruction: string };
 type Mode = 'manual' | 'text' | 'url' | 'photo';
+
+const MAX_PHOTOS = 10;
 
 const MODES: { key: Mode; label: string; icon: string }[] = [
   { key: 'manual', label: 'Manual', icon: 'create-outline' },
@@ -25,15 +29,21 @@ const MODES: { key: Mode; label: string; icon: string }[] = [
 
 export default function CreateRecipeScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const { user } = useAuth();
   const colors = useColors();
+  const toast = useToast();
+  const isDirty = useRef(false);
 
   const [mode, setMode] = useState<Mode>('manual');
   const [title, setTitle] = useState('');
-  const [ingredients, setIngredients] = useState<Ingredient[]>([{ name: '', description: '' }]);
-  const [steps, setSteps] = useState<Step[]>([{ instruction: '' }]);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([{ id: Crypto.randomUUID(), name: '', description: '' }]);
+  const [steps, setSteps] = useState<Step[]>([{ id: Crypto.randomUUID(), instruction: '' }]);
   const [saving, setSaving] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+
+  // Staged photos for multi-image import
+  const [stagedPhotos, setStagedPhotos] = useState<{ uri: string; fileName: string }[]>([]);
 
   // AI input state
   const [aiText, setAiText] = useState('');
@@ -42,6 +52,24 @@ export default function CreateRecipeScreen() {
   // Track which mode created the recipe for source_type
   const [sourceMode, setSourceMode] = useState<Mode>('manual');
   const keyboardHeight = useKeyboardHeight();
+
+  // Track dirty state
+  useEffect(() => {
+    isDirty.current = title.trim() !== '' || ingredients.some(i => i.name.trim() !== '') || steps.some(s => s.instruction.trim() !== '');
+  }, [title, ingredients, steps]);
+
+  // Navigation guard
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+      if (!isDirty.current || saving) return;
+      e.preventDefault();
+      Alert.alert('Discard changes?', 'You have unsaved changes. Are you sure you want to leave?', [
+        { text: 'Stay', style: 'cancel' },
+        { text: 'Discard', style: 'destructive', onPress: () => navigation.dispatch(e.data.action) },
+      ]);
+    });
+    return unsubscribe;
+  }, [navigation, saving]);
 
   const sourceTypeMap: Record<Mode, string> = {
     manual: 'manual',
@@ -54,13 +82,13 @@ export default function CreateRecipeScreen() {
     setTitle(result.title);
     setIngredients(
       result.ingredients.length > 0
-        ? result.ingredients
-        : [{ name: '', description: '' }]
+        ? result.ingredients.map((i) => ({ ...i, id: Crypto.randomUUID() }))
+        : [{ id: Crypto.randomUUID(), name: '', description: '' }]
     );
     setSteps(
       result.steps.length > 0
-        ? result.steps.map((s) => ({ instruction: s }))
-        : [{ instruction: '' }]
+        ? result.steps.map((s) => ({ id: Crypto.randomUUID(), instruction: s }))
+        : [{ id: Crypto.randomUUID(), instruction: '' }]
     );
     setSourceMode(fromMode);
     setMode('manual'); // Switch to form for review
@@ -72,6 +100,7 @@ export default function CreateRecipeScreen() {
     try {
       const result = await parseRecipeFromText(aiText);
       populateFromAI(result, 'text');
+      toast.show('Recipe imported! Review and save.', 'info');
     } catch (e: any) {
       Alert.alert('Error', e.message);
     }
@@ -84,40 +113,61 @@ export default function CreateRecipeScreen() {
     try {
       const result = await parseRecipeFromUrl(aiUrl);
       populateFromAI(result, 'url');
+      toast.show('Recipe imported! Review and save.', 'info');
     } catch (e: any) {
       Alert.alert('Error', e.message);
     }
     setAiLoading(false);
   };
 
-  const processPhotoResult = async (result: ImagePicker.ImagePickerResult) => {
-    if (result.canceled || !result.assets[0] || !user) return;
+  const processPhotoResult = (result: ImagePicker.ImagePickerResult) => {
+    if (result.canceled || !result.assets || result.assets.length === 0) return;
 
+    const newPhotos = result.assets.map(asset => ({
+      uri: asset.uri,
+      fileName: `${user?.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${asset.uri.split('.').pop() || 'jpg'}`,
+    }));
+
+    setStagedPhotos(prev => {
+      const combined = [...prev, ...newPhotos];
+      if (combined.length > MAX_PHOTOS) {
+        Alert.alert('Too many photos', `Maximum ${MAX_PHOTOS} photos allowed.`);
+        return combined.slice(0, MAX_PHOTOS);
+      }
+      return combined;
+    });
+  };
+
+  const handleImportPhotos = async () => {
+    if (stagedPhotos.length === 0 || !user) return;
     setAiLoading(true);
     try {
-      const asset = result.assets[0];
-      const ext = asset.uri.split('.').pop() || 'jpg';
-      const fileName = `${user.id}/${Date.now()}.${ext}`;
+      const publicUrls: string[] = [];
+      for (const photo of stagedPhotos) {
+        const formData = new FormData();
+        formData.append('file', {
+          uri: photo.uri,
+          name: photo.fileName.split('/').pop(),
+          type: 'image/jpeg',
+        } as any);
 
-      const formData = new FormData();
-      formData.append('file', {
-        uri: asset.uri,
-        name: fileName.split('/').pop(),
-        type: asset.mimeType || 'image/jpeg',
-      } as any);
+        const { error: uploadError } = await supabase.storage
+          .from('recipe-photos')
+          .upload(photo.fileName, formData, { contentType: 'multipart/form-data' });
 
-      const { error: uploadError } = await supabase.storage
-        .from('recipe-photos')
-        .upload(fileName, formData, { contentType: 'multipart/form-data' });
+        if (uploadError) throw uploadError;
 
-      if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage
+          .from('recipe-photos')
+          .getPublicUrl(photo.fileName);
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('recipe-photos')
-        .getPublicUrl(fileName);
+        publicUrls.push(publicUrl);
+      }
 
-      const parsed = await parseRecipeFromPhoto(publicUrl);
+      const parsed = await parseRecipeFromPhotos(publicUrls);
       populateFromAI(parsed, 'photo');
+      setStagedPhotos([]);
+      toast.show('Recipe imported! Review and save.', 'info');
     } catch (e: any) {
       Alert.alert('Error', e.message);
     }
@@ -134,15 +184,17 @@ export default function CreateRecipeScreen() {
       mediaTypes: ['images'],
       quality: 0.8,
     });
-    await processPhotoResult(result);
+    processPhotoResult(result);
   };
 
   const launchLibrary = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 0.8,
+      allowsMultipleSelection: true,
+      selectionLimit: MAX_PHOTOS,
     });
-    await processPhotoResult(result);
+    processPhotoResult(result);
   };
 
   const handleAiPhoto = () => {
@@ -154,16 +206,16 @@ export default function CreateRecipeScreen() {
   };
 
   // --- Ingredient/step helpers ---
-  const addIngredient = () => setIngredients([...ingredients, { name: '', description: '' }]);
-  const updateIngredient = (i: number, field: keyof Ingredient, value: string) => {
+  const addIngredient = () => setIngredients([...ingredients, { id: Crypto.randomUUID(), name: '', description: '' }]);
+  const updateIngredient = (i: number, field: 'name' | 'description', value: string) => {
     const u = [...ingredients]; u[i][field] = value; setIngredients(u);
   };
-  const removeIngredient = (i: number) => setIngredients(ingredients.filter((_, idx) => idx !== i));
-  const addStep = () => setSteps([...steps, { instruction: '' }]);
+  const removeIngredient = (id: string) => setIngredients(ingredients.filter((ing) => ing.id !== id));
+  const addStep = () => setSteps([...steps, { id: Crypto.randomUUID(), instruction: '' }]);
   const updateStep = (i: number, v: string) => {
     const u = [...steps]; u[i].instruction = v; setSteps(u);
   };
-  const removeStep = (i: number) => setSteps(steps.filter((_, idx) => idx !== i));
+  const removeStep = (id: string) => setSteps(steps.filter((s) => s.id !== id));
 
   const handleSave = async () => {
     if (!title.trim()) { Alert.alert('Error', 'Please enter a title'); return; }
@@ -214,6 +266,8 @@ export default function CreateRecipeScreen() {
     }
 
     setSaving(false);
+    toast.show('Recipe saved!');
+    isDirty.current = false;
     router.back();
   };
 
@@ -260,7 +314,7 @@ export default function CreateRecipeScreen() {
                 onChangeText={setAiText}
                 multiline
               />
-              <TouchableOpacity style={[styles.aiButton, { backgroundColor: colors.aiPurple }]} onPress={handleAiText}>
+              <TouchableOpacity style={[styles.aiButton, { backgroundColor: colors.primary }]} onPress={handleAiText}>
                 <Text style={[styles.aiButtonText, { color: colors.buttonText }]}>Generate Recipe</Text>
               </TouchableOpacity>
             </View>
@@ -278,7 +332,7 @@ export default function CreateRecipeScreen() {
                 autoCapitalize="none"
                 keyboardType="url"
               />
-              <TouchableOpacity style={[styles.aiButton, { backgroundColor: colors.aiPurple }]} onPress={handleAiUrl}>
+              <TouchableOpacity style={[styles.aiButton, { backgroundColor: colors.primary }]} onPress={handleAiUrl}>
                 <Text style={[styles.aiButtonText, { color: colors.buttonText }]}>Import Recipe</Text>
               </TouchableOpacity>
             </View>
@@ -286,10 +340,45 @@ export default function CreateRecipeScreen() {
 
           {mode === 'photo' && !aiLoading && (
             <View>
-              <TouchableOpacity style={[styles.photoButton, { borderColor: colors.inputBorder }]} onPress={handleAiPhoto}>
-                <Ionicons name="camera-outline" size={32} color={colors.primary} />
-                <Text style={[styles.photoText, { color: colors.primary }]}>Take or choose a photo</Text>
-              </TouchableOpacity>
+              {stagedPhotos.length > 0 && (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoPreviewRow}>
+                  {stagedPhotos.map((photo, index) => (
+                    <View key={photo.fileName} style={styles.photoPreviewItem}>
+                      <Image source={{ uri: photo.uri }} style={styles.photoPreviewImage} />
+                      <TouchableOpacity
+                        style={[styles.photoRemoveButton, { backgroundColor: colors.danger }]}
+                        onPress={() => setStagedPhotos(prev => prev.filter((_, i) => i !== index))}
+                        accessibilityLabel={`Remove photo ${index + 1}`}
+                      >
+                        <Ionicons name="close" size={14} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+
+              {stagedPhotos.length < MAX_PHOTOS && (
+                <TouchableOpacity style={[styles.photoButton, { borderColor: colors.inputBorder }]} onPress={handleAiPhoto}>
+                  <Ionicons name="camera-outline" size={32} color={colors.primary} />
+                  <Text style={[styles.photoText, { color: colors.primary }]}>
+                    {stagedPhotos.length === 0 ? 'Take or choose photos' : 'Add more photos'}
+                  </Text>
+                  <Text style={[styles.photoSubtext, { color: colors.textTertiary }]}>
+                    {stagedPhotos.length}/{MAX_PHOTOS} photos
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {stagedPhotos.length > 0 && (
+                <TouchableOpacity
+                  style={[styles.aiButton, { backgroundColor: colors.primary }]}
+                  onPress={handleImportPhotos}
+                >
+                  <Text style={[styles.aiButtonText, { color: colors.buttonText }]}>
+                    Import Recipe ({stagedPhotos.length} {stagedPhotos.length === 1 ? 'photo' : 'photos'})
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
@@ -301,10 +390,10 @@ export default function CreateRecipeScreen() {
 
               <Text style={[styles.label, { color: colors.text }]}>Ingredients</Text>
               {ingredients.map((ing, i) => (
-                <View key={i} style={styles.row}>
+                <View key={ing.id} style={styles.row}>
                   <TextInput style={[styles.input, { flex: 1, marginRight: 8, borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]} placeholder="Item" placeholderTextColor={colors.placeholder} value={ing.name} onChangeText={(v) => updateIngredient(i, 'name', v)} />
                   <TextInput style={[styles.input, { flex: 1, marginRight: 8, borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]} placeholder="Qty / notes" placeholderTextColor={colors.placeholder} value={ing.description} onChangeText={(v) => updateIngredient(i, 'description', v)} />
-                  <TouchableOpacity onPress={() => removeIngredient(i)}>
+                  <TouchableOpacity onPress={() => removeIngredient(ing.id)}>
                     <Ionicons name="close-circle" size={24} color={colors.danger} />
                   </TouchableOpacity>
                 </View>
@@ -316,10 +405,10 @@ export default function CreateRecipeScreen() {
 
               <Text style={[styles.label, { color: colors.text }]}>Steps</Text>
               {steps.map((step, i) => (
-                <View key={i} style={styles.row}>
+                <View key={step.id} style={styles.row}>
                   <Text style={[styles.stepNumber, { color: colors.text }]}>{i + 1}.</Text>
                   <TextInput style={[styles.input, { flex: 1, marginRight: 8, borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]} placeholder="Instruction" placeholderTextColor={colors.placeholder} value={step.instruction} onChangeText={(v) => updateStep(i, v)} multiline />
-                  <TouchableOpacity onPress={() => removeStep(i)}>
+                  <TouchableOpacity onPress={() => removeStep(step.id)}>
                     <Ionicons name="close-circle" size={24} color={colors.danger} />
                   </TouchableOpacity>
                 </View>
@@ -371,4 +460,12 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed', borderRadius: 12, marginTop: 8,
   },
   photoText: { marginTop: 8, fontSize: 16 },
+  photoPreviewRow: { marginBottom: 12 },
+  photoPreviewItem: { marginRight: 8, position: 'relative' },
+  photoPreviewImage: { width: 80, height: 80, borderRadius: 8 },
+  photoRemoveButton: {
+    position: 'absolute', top: -6, right: -6, width: 22, height: 22,
+    borderRadius: 11, alignItems: 'center', justifyContent: 'center',
+  },
+  photoSubtext: { marginTop: 4, fontSize: 13 },
 });

@@ -24,6 +24,7 @@ Rules:
 - "name" is the item itself (e.g., "tomato", "spaghetti", "butter")
 - "description" is the amount or qualifier (e.g., "1 can", "400g", "2 tablespoons", "1 large")
 - OCR text may have errors — correct obvious misspellings
+- The text may come from multiple overlapping screenshots — deduplicate any repeated content
 - Steps should be clear, concise instructions
 - Return ONLY the JSON, no markdown, no explanation`;
 
@@ -61,25 +62,51 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { image_url } = await req.json();
+    const body = await req.json();
 
-    if (!image_url || typeof image_url !== "string") {
-      return new Response(JSON.stringify({ error: "image_url is required" }), {
+    // Normalize: accept image_url (string) or image_urls (string[])
+    let imageUrls: string[];
+    if (Array.isArray(body.image_urls)) {
+      imageUrls = body.image_urls;
+    } else if (typeof body.image_url === "string") {
+      imageUrls = [body.image_url];
+    } else {
+      return new Response(JSON.stringify({ error: "image_url or image_urls is required" }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    if (image_url.length > 2000) {
-      return new Response(JSON.stringify({ error: "image_url is too long. Maximum 2,000 characters." }), {
+    if (imageUrls.length < 1 || imageUrls.length > 10) {
+      return new Response(JSON.stringify({ error: "Between 1 and 10 images are required." }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
+    }
+
+    for (const url of imageUrls) {
+      if (typeof url !== "string" || url.length === 0) {
+        return new Response(JSON.stringify({ error: "Each image URL must be a non-empty string." }), {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      if (url.length > 2000) {
+        return new Response(JSON.stringify({ error: "Each image URL must be at most 2,000 characters." }), {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
     }
 
     // Step 1: OCR with Mistral pixtral (with timeout)
+    const imageContentBlocks = imageUrls.map((url) => ({
+      type: "image_url" as const,
+      image_url: { url },
+    }));
+
     const ocrController = new AbortController();
-    const ocrTimeout = setTimeout(() => ocrController.abort(), 30000);
+    const ocrTimeout = setTimeout(() => ocrController.abort(), 45000);
     const ocrResponse = await fetch("https://api.mistral.ai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -94,12 +121,9 @@ Deno.serve(async (req) => {
             content: [
               {
                 type: "text",
-                text: "Extract ALL text from this image. Return only the raw text, preserving the structure as much as possible.",
+                text: "Extract ALL text from these images. They may be multiple screenshots of the same content with overlap — deduplicate and return the combined text in order.",
               },
-              {
-                type: "image_url",
-                image_url: { url: image_url },
-              },
+              ...imageContentBlocks,
             ],
           },
         ],
