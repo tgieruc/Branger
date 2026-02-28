@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert,
-  ActivityIndicator,
+  ActivityIndicator, Image,
 } from 'react-native';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import { useRouter, useNavigation } from 'expo-router';
@@ -11,12 +11,14 @@ import * as Crypto from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useColors } from '@/hooks/useColors';
-import { parseRecipeFromText, parseRecipeFromUrl, parseRecipeFromPhoto } from '@/lib/ai';
+import { parseRecipeFromText, parseRecipeFromUrl, parseRecipeFromPhoto, parseRecipeFromPhotos } from '@/lib/ai';
 import { useToast } from '@/lib/toast';
 
 type Ingredient = { id: string; name: string; description: string };
 type Step = { id: string; instruction: string };
 type Mode = 'manual' | 'text' | 'url' | 'photo';
+
+const MAX_PHOTOS = 10;
 
 const MODES: { key: Mode; label: string; icon: string }[] = [
   { key: 'manual', label: 'Manual', icon: 'create-outline' },
@@ -39,6 +41,9 @@ export default function CreateRecipeScreen() {
   const [steps, setSteps] = useState<Step[]>([{ id: Crypto.randomUUID(), instruction: '' }]);
   const [saving, setSaving] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+
+  // Staged photos for multi-image import
+  const [stagedPhotos, setStagedPhotos] = useState<{ uri: string; fileName: string }[]>([]);
 
   // AI input state
   const [aiText, setAiText] = useState('');
@@ -115,34 +120,53 @@ export default function CreateRecipeScreen() {
     setAiLoading(false);
   };
 
-  const processPhotoResult = async (result: ImagePicker.ImagePickerResult) => {
-    if (result.canceled || !result.assets[0] || !user) return;
+  const processPhotoResult = (result: ImagePicker.ImagePickerResult) => {
+    if (result.canceled || !result.assets || result.assets.length === 0) return;
 
+    const newPhotos = result.assets.map(asset => ({
+      uri: asset.uri,
+      fileName: `${user?.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${asset.uri.split('.').pop() || 'jpg'}`,
+    }));
+
+    setStagedPhotos(prev => {
+      const combined = [...prev, ...newPhotos];
+      if (combined.length > MAX_PHOTOS) {
+        Alert.alert('Too many photos', `Maximum ${MAX_PHOTOS} photos allowed.`);
+        return combined.slice(0, MAX_PHOTOS);
+      }
+      return combined;
+    });
+  };
+
+  const handleImportPhotos = async () => {
+    if (stagedPhotos.length === 0 || !user) return;
     setAiLoading(true);
     try {
-      const asset = result.assets[0];
-      const ext = asset.uri.split('.').pop() || 'jpg';
-      const fileName = `${user.id}/${Date.now()}.${ext}`;
+      const publicUrls: string[] = [];
+      for (const photo of stagedPhotos) {
+        const formData = new FormData();
+        formData.append('file', {
+          uri: photo.uri,
+          name: photo.fileName.split('/').pop(),
+          type: 'image/jpeg',
+        } as any);
 
-      const formData = new FormData();
-      formData.append('file', {
-        uri: asset.uri,
-        name: fileName.split('/').pop(),
-        type: asset.mimeType || 'image/jpeg',
-      } as any);
+        const { error: uploadError } = await supabase.storage
+          .from('recipe-photos')
+          .upload(photo.fileName, formData, { contentType: 'multipart/form-data' });
 
-      const { error: uploadError } = await supabase.storage
-        .from('recipe-photos')
-        .upload(fileName, formData, { contentType: 'multipart/form-data' });
+        if (uploadError) throw uploadError;
 
-      if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage
+          .from('recipe-photos')
+          .getPublicUrl(photo.fileName);
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('recipe-photos')
-        .getPublicUrl(fileName);
+        publicUrls.push(publicUrl);
+      }
 
-      const parsed = await parseRecipeFromPhoto(publicUrl);
+      const parsed = await parseRecipeFromPhotos(publicUrls);
       populateFromAI(parsed, 'photo');
+      setStagedPhotos([]);
       toast.show('Recipe imported! Review and save.', 'info');
     } catch (e: any) {
       Alert.alert('Error', e.message);
@@ -160,15 +184,17 @@ export default function CreateRecipeScreen() {
       mediaTypes: ['images'],
       quality: 0.8,
     });
-    await processPhotoResult(result);
+    processPhotoResult(result);
   };
 
   const launchLibrary = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 0.8,
+      allowsMultipleSelection: true,
+      selectionLimit: MAX_PHOTOS,
     });
-    await processPhotoResult(result);
+    processPhotoResult(result);
   };
 
   const handleAiPhoto = () => {
@@ -314,10 +340,45 @@ export default function CreateRecipeScreen() {
 
           {mode === 'photo' && !aiLoading && (
             <View>
-              <TouchableOpacity style={[styles.photoButton, { borderColor: colors.inputBorder }]} onPress={handleAiPhoto}>
-                <Ionicons name="camera-outline" size={32} color={colors.primary} />
-                <Text style={[styles.photoText, { color: colors.primary }]}>Take or choose a photo</Text>
-              </TouchableOpacity>
+              {stagedPhotos.length > 0 && (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoPreviewRow}>
+                  {stagedPhotos.map((photo, index) => (
+                    <View key={photo.fileName} style={styles.photoPreviewItem}>
+                      <Image source={{ uri: photo.uri }} style={styles.photoPreviewImage} />
+                      <TouchableOpacity
+                        style={[styles.photoRemoveButton, { backgroundColor: colors.danger }]}
+                        onPress={() => setStagedPhotos(prev => prev.filter((_, i) => i !== index))}
+                        accessibilityLabel={`Remove photo ${index + 1}`}
+                      >
+                        <Ionicons name="close" size={14} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+
+              {stagedPhotos.length < MAX_PHOTOS && (
+                <TouchableOpacity style={[styles.photoButton, { borderColor: colors.inputBorder }]} onPress={handleAiPhoto}>
+                  <Ionicons name="camera-outline" size={32} color={colors.primary} />
+                  <Text style={[styles.photoText, { color: colors.primary }]}>
+                    {stagedPhotos.length === 0 ? 'Take or choose photos' : 'Add more photos'}
+                  </Text>
+                  <Text style={[styles.photoSubtext, { color: colors.textTertiary }]}>
+                    {stagedPhotos.length}/{MAX_PHOTOS} photos
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {stagedPhotos.length > 0 && (
+                <TouchableOpacity
+                  style={[styles.aiButton, { backgroundColor: colors.primary }]}
+                  onPress={handleImportPhotos}
+                >
+                  <Text style={[styles.aiButtonText, { color: colors.buttonText }]}>
+                    Import Recipe ({stagedPhotos.length} {stagedPhotos.length === 1 ? 'photo' : 'photos'})
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
@@ -399,4 +460,12 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed', borderRadius: 12, marginTop: 8,
   },
   photoText: { marginTop: 8, fontSize: 16 },
+  photoPreviewRow: { marginBottom: 12 },
+  photoPreviewItem: { marginRight: 8, position: 'relative' },
+  photoPreviewImage: { width: 80, height: 80, borderRadius: 8 },
+  photoRemoveButton: {
+    position: 'absolute', top: -6, right: -6, width: 22, height: 22,
+    borderRadius: 11, alignItems: 'center', justifyContent: 'center',
+  },
+  photoSubtext: { marginTop: 4, fontSize: 13 },
 });

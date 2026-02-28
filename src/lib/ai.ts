@@ -5,7 +5,7 @@ const FUNCTIONS_URL = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1`;
 
 async function callEdgeFunction(
   functionName: string,
-  body: Record<string, string>
+  body: Record<string, string | string[]>
 ): Promise<AIRecipeResult> {
   // Get current session, refresh only if token expires within 60s
   let { data: { session } } = await supabase.auth.getSession();
@@ -51,4 +51,8 @@ export async function parseRecipeFromUrl(url: string): Promise<AIRecipeResult> {
 
 export async function parseRecipeFromPhoto(imageUrl: string): Promise<AIRecipeResult> {
   return callEdgeFunction('parse-recipe-photo', { image_url: imageUrl });
+}
+
+export async function parseRecipeFromPhotos(imageUrls: string[]): Promise<AIRecipeResult> {
+  return callEdgeFunction('parse-recipe-photo', { image_urls: imageUrls });
 }

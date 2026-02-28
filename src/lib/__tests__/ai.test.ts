@@ -1,4 +1,4 @@
-import { parseRecipeFromText, parseRecipeFromUrl, parseRecipeFromPhoto } from '@/lib/ai';
+import { parseRecipeFromText, parseRecipeFromUrl, parseRecipeFromPhoto, parseRecipeFromPhotos } from '@/lib/ai';
 import { supabase } from '@/lib/supabase';
 
 jest.mock('@/lib/supabase');
@@ -129,5 +129,29 @@ describe('parseRecipeFromPhoto', () => {
       }),
     );
     expect(result).toEqual(mockRecipeResult);
+  });
+});
+
+describe('parseRecipeFromPhotos', () => {
+  it('calls fetch with image_urls array', async () => {
+    const urls = ['https://example.com/photo1.jpg', 'https://example.com/photo2.jpg'];
+    const result = await parseRecipeFromPhotos(urls);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/functions/v1/parse-recipe-photo'),
+      expect.objectContaining({
+        body: JSON.stringify({ image_urls: urls }),
+      }),
+    );
+    expect(result).toEqual(mockRecipeResult);
+  });
+
+  it('sends to same endpoint as single photo', async () => {
+    await parseRecipeFromPhotos(['https://example.com/photo1.jpg']);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/functions/v1/parse-recipe-photo'),
+      expect.anything(),
+    );
   });
 });
