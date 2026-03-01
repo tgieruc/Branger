@@ -3,7 +3,18 @@ from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from app.database import Base, get_db
 from app.main import app as fastapi_app
+from app.config import settings
 import app.models  # noqa: F401  -- register models with Base before create_all
+
+
+@pytest.fixture(autouse=True)
+def override_photos_dir(tmp_path):
+    original = settings.photos_dir
+    settings.photos_dir = tmp_path / "photos"
+    settings.photos_dir.mkdir(parents=True, exist_ok=True)
+    yield
+    settings.photos_dir = original
+
 
 @pytest.fixture
 async def db_session():
