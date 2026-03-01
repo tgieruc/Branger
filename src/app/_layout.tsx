@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { AppState } from 'react-native';
+import { Alert, AppState } from 'react-native';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Updates from 'expo-updates';
@@ -57,7 +57,14 @@ function OTAUpdater() {
         const update = await Updates.checkForUpdateAsync();
         if (update.isAvailable) {
           await Updates.fetchUpdateAsync();
-          await Updates.reloadAsync();
+          Alert.alert(
+            'Update Available',
+            'A new version has been downloaded. Restart now?',
+            [
+              { text: 'Later', style: 'cancel' },
+              { text: 'Restart', onPress: () => Updates.reloadAsync() },
+            ]
+          );
         }
       } catch {
         // Silent fail — OTA check is best-effort

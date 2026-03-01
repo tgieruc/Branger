@@ -2,10 +2,12 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import * as jose from "jsr:@panva/jose@6";
 
 const MISTRAL_API_KEY = Deno.env.get("MISTRAL_API_KEY")!;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-const SUPABASE_JWT_ISSUER = Deno.env.get("SUPABASE_URL")! + "/auth/v1";
+const SUPABASE_JWT_ISSUER = SUPABASE_URL + "/auth/v1";
 const SUPABASE_JWT_KEYS = jose.createRemoteJWKSet(
-  new URL(Deno.env.get("SUPABASE_URL")! + "/auth/v1/.well-known/jwks.json"),
+  new URL(SUPABASE_URL + "/auth/v1/.well-known/jwks.json"),
 );
 
 const SYSTEM_PROMPT = `You are a recipe parser. Given OCR-extracted text from a recipe photo, extract it into a structured JSON format.
@@ -31,6 +33,73 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// SSRF protection: check if an IPv4 address is private/internal
+function isPrivateIP(ip: string): boolean {
+  const parts = ip.split(".").map(Number);
+  if (parts.length !== 4 || parts.some((p) => isNaN(p) || p < 0 || p > 255)) return false;
+  return (
+    parts[0] === 127 ||
+    parts[0] === 10 ||
+    (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
+    (parts[0] === 192 && parts[1] === 168) ||
+    (parts[0] === 169 && parts[1] === 254) ||
+    parts[0] === 0
+  );
+}
+
+// SSRF protection: validate URL is not pointing to internal resources
+async function validateImageUrl(url: string): Promise<void> {
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    throw new Error("Invalid URL format");
+  }
+
+  if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+    throw new Error("Only HTTP/HTTPS URLs are allowed");
+  }
+
+  const hostname = parsedUrl.hostname;
+
+  if (/^localhost$/i.test(hostname)) {
+    throw new Error("URL points to a private/internal address");
+  }
+
+  if (hostname.startsWith("[")) {
+    throw new Error("IPv6 addresses are not allowed");
+  }
+
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname)) {
+    if (isPrivateIP(hostname)) {
+      throw new Error("URL points to a private/internal address");
+    }
+    return;
+  }
+
+  const rebindingDomains = [".nip.io", ".sslip.io", ".xip.io", ".localtest.me", ".lvh.me"];
+  if (rebindingDomains.some((d) => hostname.toLowerCase().endsWith(d))) {
+    throw new Error("URL points to a disallowed domain");
+  }
+
+  try {
+    const dnsRes = await fetch(
+      `https://dns.google/resolve?name=${encodeURIComponent(hostname)}&type=A`,
+      { headers: { Accept: "application/dns-json" } },
+    );
+    const dnsData = await dnsRes.json();
+    const ips: string[] = (dnsData.Answer || [])
+      .filter((a: { type: number }) => a.type === 1)
+      .map((a: { data: string }) => a.data);
+
+    if (ips.length > 0 && ips.every((ip: string) => isPrivateIP(ip))) {
+      throw new Error("URL resolves to a private/internal address");
+    }
+  } catch (e) {
+    if (e instanceof Error && e.message.includes("private")) throw e;
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -59,6 +128,26 @@ Deno.serve(async (req) => {
         status: 401,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
+    }
+
+    // Rate limit check
+    const rateLimitRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/check_ai_rate_limit`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": authHeader,
+        "apikey": SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({}),
+    });
+    if (rateLimitRes.ok) {
+      const allowed = await rateLimitRes.json();
+      if (!allowed) {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
+          status: 429,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
     }
 
     const body = await req.json();
@@ -96,43 +185,59 @@ Deno.serve(async (req) => {
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
+      // SSRF protection: validate each image URL
+      try {
+        await validateImageUrl(url);
+      } catch (e) {
+        return new Response(JSON.stringify({ error: (e as Error).message }), {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
     }
 
     // Step 1: OCR with mistral-ocr-latest (dedicated endpoint, one image at a time)
-    const ocrController = new AbortController();
-    const ocrTimeout = setTimeout(() => ocrController.abort(), 60000);
-
     const ocrPages: string[] = [];
     for (const url of imageUrls) {
-      const ocrResponse = await fetch("https://api.mistral.ai/v1/ocr", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${MISTRAL_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "mistral-ocr-latest",
-          document: {
-            type: "image_url",
-            image_url: url,
+      const ocrController = new AbortController();
+      const ocrTimeout = setTimeout(() => ocrController.abort(), 30000);
+      try {
+        const ocrResponse = await fetch("https://api.mistral.ai/v1/ocr", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${MISTRAL_API_KEY}`,
           },
-        }),
-        signal: ocrController.signal,
-      });
+          body: JSON.stringify({
+            model: "mistral-ocr-latest",
+            document: {
+              type: "image_url",
+              image_url: url,
+            },
+          }),
+          signal: ocrController.signal,
+        });
+        clearTimeout(ocrTimeout);
 
-      if (!ocrResponse.ok) {
-        const errorBody = await ocrResponse.text();
-        throw new Error(`Mistral OCR error (${ocrResponse.status}): ${errorBody}`);
-      }
-
-      const ocrData = await ocrResponse.json();
-      for (const page of ocrData.pages || []) {
-        if (page.markdown) {
-          ocrPages.push(page.markdown);
+        if (!ocrResponse.ok) {
+          const errorBody = await ocrResponse.text();
+          throw new Error(`Mistral OCR error (${ocrResponse.status}): ${errorBody}`);
         }
+
+        const ocrData = await ocrResponse.json();
+        for (const page of ocrData.pages || []) {
+          if (page.markdown) {
+            ocrPages.push(page.markdown);
+          }
+        }
+      } catch (e) {
+        clearTimeout(ocrTimeout);
+        if (e instanceof DOMException && e.name === "AbortError") {
+          throw new Error("OCR request timed out. Please try with fewer or smaller images.");
+        }
+        throw e;
       }
     }
-    clearTimeout(ocrTimeout);
 
     const extractedText = ocrPages.join("\n\n");
 

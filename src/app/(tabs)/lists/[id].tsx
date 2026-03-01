@@ -173,7 +173,7 @@ export default function ListDetailScreen() {
 
   const handleShareList = async () => {
     if (!list) return;
-    const shareUrl = `branger://list/${id}`;
+    const shareUrl = `branger://list/${id}?token=${list.invite_token}`;
     try {
       await Share.share({
         message: Platform.OS === 'ios'

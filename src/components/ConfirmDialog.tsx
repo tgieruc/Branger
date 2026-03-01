@@ -23,10 +23,10 @@ export default function ConfirmDialog({
           <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
           <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text>
           <View style={styles.buttons}>
-            <TouchableOpacity style={[styles.cancelBtn, { backgroundColor: colors.cancelButton }]} onPress={onCancel}>
+            <TouchableOpacity style={[styles.cancelBtn, { backgroundColor: colors.cancelButton }]} onPress={onCancel} accessibilityLabel="Cancel" accessibilityRole="button">
               <Text style={[styles.cancelText, { color: colors.cancelText }]}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.confirmBtn, { backgroundColor: destructive ? colors.danger : colors.primary }]} onPress={onConfirm}>
+            <TouchableOpacity style={[styles.confirmBtn, { backgroundColor: destructive ? colors.danger : colors.primary }]} onPress={onConfirm} accessibilityLabel={confirmLabel} accessibilityRole="button">
               <Text style={[styles.confirmText, { color: colors.buttonText }]}>{confirmLabel}</Text>
             </TouchableOpacity>
           </View>

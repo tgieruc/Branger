@@ -189,18 +189,21 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          invite_token: string
           name: string
           updated_at: string
         }
         Insert: {
           created_at?: string
           id?: string
+          invite_token?: string
           name: string
           updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
+          invite_token?: string
           name?: string
           updated_at?: string
         }
@@ -227,6 +230,7 @@ export type Database = {
       join_list: {
         Args: {
           p_list_id: string
+          p_invite_token: string
         }
         Returns: undefined
       }
