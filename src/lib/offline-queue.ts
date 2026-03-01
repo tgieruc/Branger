@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { apiCall } from '@/lib/api';
 
 const QUEUE_KEY = '@offline_queue';
 
@@ -29,9 +29,7 @@ export async function clearQueue(): Promise<void> {
   await AsyncStorage.removeItem(QUEUE_KEY);
 }
 
-export async function replayQueue(
-  supabaseClient: SupabaseClient
-): Promise<{ success: number; failed: number }> {
+export async function replayQueue(): Promise<{ success: number; failed: number }> {
   const queue = await getQueue();
   if (queue.length === 0) return { success: 0, failed: 0 };
 
@@ -41,7 +39,7 @@ export async function replayQueue(
   const failedEntries: QueueEntry[] = [];
 
   for (const entry of queue) {
-    let error: unknown = null;
+    let ok = false;
 
     // Skip toggle/delete for temp IDs — the add_item will create the real row
     if ((entry.type === 'delete_item' || entry.type === 'toggle_item') &&
@@ -51,25 +49,46 @@ export async function replayQueue(
       continue;
     }
 
-    switch (entry.type) {
-      case 'add_item':
-        ({ error } = await supabaseClient.from('list_items').insert(entry.payload));
-        break;
-      case 'delete_item':
-        ({ error } = await supabaseClient
-          .from('list_items')
-          .delete()
-          .eq('id', entry.payload.itemId as string));
-        break;
-      case 'toggle_item':
-        ({ error } = await supabaseClient
-          .from('list_items')
-          .update({ checked: entry.payload.checked as boolean })
-          .eq('id', entry.payload.itemId as string));
-        break;
+    try {
+      switch (entry.type) {
+        case 'add_item': {
+          const listId = entry.payload.list_id as string;
+          const resp = await apiCall(`/api/lists/${listId}/items`, {
+            method: 'POST',
+            body: JSON.stringify([{
+              name: entry.payload.name as string,
+              description: (entry.payload.description as string | null) || null,
+              recipe_id: null,
+            }]),
+          });
+          ok = resp.ok;
+          break;
+        }
+        case 'delete_item': {
+          const listId = entry.payload.list_id as string;
+          const itemId = entry.payload.itemId as string;
+          const resp = await apiCall(`/api/lists/${listId}/items/${itemId}`, {
+            method: 'DELETE',
+          });
+          ok = resp.ok;
+          break;
+        }
+        case 'toggle_item': {
+          const listId = entry.payload.list_id as string;
+          const itemId = entry.payload.itemId as string;
+          const resp = await apiCall(`/api/lists/${listId}/items/${itemId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ checked: entry.payload.checked as boolean }),
+          });
+          ok = resp.ok;
+          break;
+        }
+      }
+    } catch {
+      ok = false;
     }
 
-    if (error) {
+    if (!ok) {
       failed++;
       failedEntries.push(entry);
     } else {

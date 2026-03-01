@@ -5,15 +5,24 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '@/lib/supabase';
+import { apiJson, apiCall, getWsUrl, getAccessToken, getServerUrl } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useIsOnline } from '@/lib/net-info';
 import { enqueue, replayQueue } from '@/lib/offline-queue';
-import type { ShoppingList, ListItem, ListMember } from '@/lib/types';
+import type { ListItem } from '@/lib/types';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useColors } from '@/hooks/useColors';
 import { EmptyChecklist } from '@/components/illustrations/EmptyChecklist';
+
+type ListDetailOut = {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  items: ListItem[];
+  members: { user_id: string; email: string; joined_at: string }[];
+};
 
 export default function ListDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -22,9 +31,9 @@ export default function ListDetailScreen() {
   const colors = useColors();
   const isOnline = useIsOnline();
   const wasOnlineRef = useRef(isOnline);
-  const [list, setList] = useState<ShoppingList | null>(null);
+  const [listName, setListName] = useState<string | null>(null);
   const [items, setItems] = useState<ListItem[]>([]);
-  const [members, setMembers] = useState<ListMember[]>([]);
+  const [memberCount, setMemberCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [newItemName, setNewItemName] = useState('');
   const [newItemDesc, setNewItemDesc] = useState('');
@@ -33,62 +42,73 @@ export default function ListDetailScreen() {
   const [clearCheckedVisible, setClearCheckedVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const keyboardHeight = useKeyboardHeight();
+  const wsRef = useRef<WebSocket | null>(null);
 
   const fetchData = useCallback(async () => {
-    const [listRes, itemsRes, membersRes] = await Promise.all([
-      supabase.from('shopping_lists').select('*').eq('id', id).single(),
-      supabase.from('list_items').select('*').eq('list_id', id).order('position'),
-      supabase.from('list_members').select('*').eq('list_id', id),
-    ]);
+    const { data, error } = await apiJson<ListDetailOut>(`/api/lists/${id}`);
 
-    if (listRes.data) setList(listRes.data);
-    if (itemsRes.data) setItems(itemsRes.data);
-    if (membersRes.data) setMembers(membersRes.data);
+    if (data && !error) {
+      setListName(data.name);
+      setItems(data.items);
+      setMemberCount(data.members.length);
+    }
     setLoading(false);
   }, [id]);
 
+  // WebSocket connection for realtime updates
   useEffect(() => {
+    let ws: WebSocket | null = null;
+    let cancelled = false;
+
+    const connectWs = async () => {
+      const wsBase = await getWsUrl();
+      const token = await getAccessToken();
+      if (!token || cancelled) return;
+
+      ws = new WebSocket(`${wsBase}/ws/lists/${id}?token=${token}`);
+
+      ws.onmessage = (event) => {
+        try {
+          const { event: evt, record } = JSON.parse(event.data);
+          switch (evt) {
+            case 'INSERT':
+              setItems((prev) => {
+                if (prev.some(i => i.id === record.id)) return prev;
+                return [...prev, record as ListItem];
+              });
+              break;
+            case 'UPDATE':
+              setItems((prev) => prev.map(i =>
+                i.id === record.id ? (record as ListItem) : i
+              ));
+              break;
+            case 'DELETE':
+              setItems((prev) => prev.filter(i => i.id !== record.id));
+              break;
+          }
+        } catch {
+          // Ignore malformed messages
+        }
+      };
+
+      if (!cancelled) {
+        wsRef.current = ws;
+      }
+    };
+
     fetchData();
+    connectWs();
 
-    const channel = supabase
-      .channel(`list-${id}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'list_items',
-        filter: `list_id=eq.${id}`,
-      }, (payload) => {
-        setItems((prev) => {
-          if (prev.some(i => i.id === payload.new.id)) return prev;
-          return [...prev, payload.new as ListItem];
-        });
-      })
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'list_items',
-        filter: `list_id=eq.${id}`,
-      }, (payload) => {
-        setItems((prev) => prev.map(i =>
-          i.id === payload.new.id ? (payload.new as ListItem) : i
-        ));
-      })
-      .on('postgres_changes', {
-        event: 'DELETE',
-        schema: 'public',
-        table: 'list_items',
-        filter: `list_id=eq.${id}`,
-      }, (payload) => {
-        setItems((prev) => prev.filter(i => i.id !== payload.old.id));
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      cancelled = true;
+      ws?.close();
+      wsRef.current = null;
+    };
   }, [id, fetchData]);
 
   useEffect(() => {
     if (isOnline && !wasOnlineRef.current) {
-      replayQueue(supabase).then(({ failed }) => {
+      replayQueue().then(({ failed }) => {
         if (failed > 0) {
           Alert.alert('Sync Issue', `${failed} change(s) could not be synced. They will be retried next time.`);
         }
@@ -102,14 +122,14 @@ export default function ListDetailScreen() {
     const previousItems = items;
     setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, checked: !i.checked } : i));
     if (!isOnline) {
-      enqueue({ type: 'toggle_item', payload: { itemId: item.id, checked: !item.checked } });
+      enqueue({ type: 'toggle_item', payload: { itemId: item.id, list_id: id, checked: !item.checked } });
       return;
     }
-    const { error } = await supabase
-      .from('list_items')
-      .update({ checked: !item.checked })
-      .eq('id', item.id);
-    if (error) {
+    const resp = await apiCall(`/api/lists/${id}/items/${item.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ checked: !item.checked }),
+    });
+    if (!resp.ok) {
       setItems(previousItems);
     }
   };
@@ -125,11 +145,11 @@ export default function ListDetailScreen() {
     setItems((prev) => prev.filter((i) => i.id !== idToDelete));
     setDeleteItemId(null);
     if (!isOnline) {
-      enqueue({ type: 'delete_item', payload: { itemId: idToDelete } });
+      enqueue({ type: 'delete_item', payload: { itemId: idToDelete, list_id: id } });
       return;
     }
-    const { error } = await supabase.from('list_items').delete().eq('id', idToDelete);
-    if (error) {
+    const resp = await apiCall(`/api/lists/${id}/items/${idToDelete}`, { method: 'DELETE' });
+    if (!resp.ok) {
       setItems(previousItems);
     }
   };
@@ -154,7 +174,14 @@ export default function ListDetailScreen() {
       return;
     }
 
-    await supabase.from('list_items').insert(itemData);
+    await apiJson(`/api/lists/${id}/items`, {
+      method: 'POST',
+      body: JSON.stringify([{
+        name: newItemName.trim(),
+        description: newItemDesc.trim() || null,
+        recipe_id: null,
+      }]),
+    });
 
     setNewItemName('');
     setNewItemDesc('');
@@ -163,22 +190,19 @@ export default function ListDetailScreen() {
   const confirmDeleteList = async () => {
     if (!user) return;
     setDeleteListVisible(false);
-    await supabase
-      .from('list_members')
-      .delete()
-      .eq('list_id', id)
-      .eq('user_id', user.id);
+    await apiCall(`/api/lists/${id}`, { method: 'DELETE' });
     router.back();
   };
 
   const handleShareList = async () => {
-    if (!list) return;
-    const shareUrl = `branger://list/${id}`;
+    if (!listName) return;
+    const serverUrl = await getServerUrl();
+    const shareUrl = `${serverUrl}/list/${id}`;
     try {
       await Share.share({
         message: Platform.OS === 'ios'
-          ? `Join my shopping list "${list.name}" on Branger`
-          : `Join my shopping list "${list.name}" on Branger\n${shareUrl}`,
+          ? `Join my shopping list "${listName}" on Branger`
+          : `Join my shopping list "${listName}" on Branger\n${shareUrl}`,
         url: Platform.OS === 'ios' ? shareUrl : undefined,
       });
     } catch {
@@ -193,13 +217,16 @@ export default function ListDetailScreen() {
     setItems((prev) => prev.filter((i) => !i.checked));
     if (!isOnline) {
       for (const item of checkedItems) {
-        enqueue({ type: 'delete_item', payload: { itemId: item.id } });
+        enqueue({ type: 'delete_item', payload: { itemId: item.id, list_id: id } });
       }
       return;
     }
     const checkedIds = checkedItems.map((i) => i.id);
-    const { error } = await supabase.from('list_items').delete().in('id', checkedIds);
-    if (error) {
+    const resp = await apiCall(`/api/lists/${id}/items`, {
+      method: 'DELETE',
+      body: JSON.stringify({ item_ids: checkedIds }),
+    });
+    if (!resp.ok) {
       setItems(previousItems);
     }
   };
@@ -223,7 +250,7 @@ export default function ListDetailScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
-          title: list?.name ?? 'List',
+          title: listName ?? 'List',
           headerRight: () => (
             <View style={styles.headerRight}>
               <TouchableOpacity onPress={handleShareList} style={styles.headerBtn} accessibilityLabel="Share list" accessibilityRole="button">
@@ -349,7 +376,7 @@ export default function ListDetailScreen() {
         visible={deleteListVisible}
         title="Delete List"
         message={
-          members.length === 1
+          memberCount === 1
             ? 'This will permanently delete the list and all its items.'
             : 'You will be removed from this list.'
         }

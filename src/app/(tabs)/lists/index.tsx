@@ -6,7 +6,7 @@ import {
 import { Link, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { supabase } from '@/lib/supabase';
+import { apiJson, apiCall } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -37,53 +37,15 @@ export default function ListsScreen() {
   const fetchLists = useCallback(async () => {
     if (!user) { setLoading(false); return; }
 
-    const { data: memberships } = await supabase
-      .from('list_members')
-      .select('list_id')
-      .eq('user_id', user.id);
+    const { data, error } = await apiJson<ListSummary[]>('/api/lists/');
 
-    if (!memberships || memberships.length === 0) {
+    if (error || !data) {
       setLists([]);
       setLoading(false);
       return;
     }
 
-    const listIds = memberships.map((m) => m.list_id);
-
-    const { data: listsData } = await supabase
-      .from('shopping_lists')
-      .select('id, name')
-      .in('id', listIds)
-      .order('updated_at', { ascending: false });
-
-    if (!listsData) {
-      setLists([]);
-      setLoading(false);
-      return;
-    }
-
-    // Single query: get counts for all lists at once
-    const { data: allItems } = await supabase
-      .from('list_items')
-      .select('list_id, checked')
-      .in('list_id', listIds);
-
-    const countMap = new Map<string, { total: number; unchecked: number }>();
-    for (const item of allItems ?? []) {
-      const entry = countMap.get(item.list_id) ?? { total: 0, unchecked: 0 };
-      entry.total++;
-      if (!item.checked) entry.unchecked++;
-      countMap.set(item.list_id, entry);
-    }
-
-    const summaries: ListSummary[] = listsData.map((list) => ({
-      id: list.id,
-      name: list.name,
-      item_count: countMap.get(list.id)?.total ?? 0,
-      unchecked_count: countMap.get(list.id)?.unchecked ?? 0,
-    }));
-
-    setLists(summaries);
+    setLists(data);
     setLoading(false);
   }, [user]);
 
@@ -100,12 +62,13 @@ export default function ListsScreen() {
   const handleCreate = async () => {
     if (!newName.trim()) return;
 
-    const { error } = await supabase.rpc('create_list_with_member', {
-      list_name: newName.trim(),
+    const { error } = await apiJson('/api/lists/', {
+      method: 'POST',
+      body: JSON.stringify({ name: newName.trim() }),
     });
 
     if (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert('Error', error);
       return;
     }
 
@@ -116,11 +79,7 @@ export default function ListsScreen() {
 
   const confirmDeleteList = async () => {
     if (!deleteListId || !user) return;
-    await supabase
-      .from('list_members')
-      .delete()
-      .eq('list_id', deleteListId)
-      .eq('user_id', user.id);
+    await apiCall(`/api/lists/${deleteListId}`, { method: 'DELETE' });
     setDeleteListId(null);
     fetchLists();
   };
