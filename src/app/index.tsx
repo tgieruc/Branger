@@ -4,7 +4,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 
 export default function IndexScreen() {
-  const { session, loading } = useAuth();
+  const { session, loading, serverConfigured } = useAuth();
   const colors = useColors();
 
   if (loading) {
@@ -13,6 +13,10 @@ export default function IndexScreen() {
         <ActivityIndicator size="large" />
       </View>
     );
+  }
+
+  if (!serverConfigured) {
+    return <Redirect href="/server-setup" />;
   }
 
   if (session) {

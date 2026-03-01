@@ -1,12 +1,18 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import type { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { apiJson, storeTokens, clearTokens, getAccessToken, getUserFromToken, getServerUrl } from '@/lib/api';
 import { clearAllCache } from '@/lib/cache';
 
+export type User = {
+  id: string;
+  email: string;
+  is_admin: boolean;
+};
+
 type AuthContextType = {
-  session: Session | null;
+  session: string | null;
   user: User | null;
   loading: boolean;
+  serverConfigured: boolean;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -15,42 +21,88 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [serverConfigured, setServerConfigured] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
+    const loadAuth = async () => {
+      // Check if server URL is configured
+      const serverUrl = await getServerUrl();
+      if (!serverUrl) {
+        setServerConfigured(false);
+        setLoading(false);
+        return;
       }
-    );
+      setServerConfigured(true);
 
-    return () => subscription.unsubscribe();
+      // Try to load stored token
+      const token = await getAccessToken();
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      const userInfo = getUserFromToken(token);
+      if (userInfo) {
+        setSession(token);
+        setUser(userInfo);
+      }
+      setLoading(false);
+    };
+
+    loadAuth();
   }, []);
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
-    return { error: error as Error | null };
+    const { data, error } = await apiJson<{ access_token: string; refresh_token: string }>(
+      '/api/auth/register',
+      {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      },
+      false,
+    );
+    if (error) return { error: new Error(error) };
+    if (data) {
+      await storeTokens(data.access_token, data.refresh_token);
+      const userInfo = getUserFromToken(data.access_token);
+      setSession(data.access_token);
+      setUser(userInfo);
+    }
+    return { error: null };
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error as Error | null };
+    const { data, error } = await apiJson<{ access_token: string; refresh_token: string }>(
+      '/api/auth/login',
+      {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      },
+      false,
+    );
+    if (error) return { error: new Error(error) };
+    if (data) {
+      await storeTokens(data.access_token, data.refresh_token);
+      const userInfo = getUserFromToken(data.access_token);
+      setSession(data.access_token);
+      setUser(userInfo);
+    }
+    return { error: null };
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await clearTokens();
     await clearAllCache();
+    setSession(null);
+    setUser(null);
   };
 
   return (
     <AuthContext.Provider
-      value={{ session, user: session?.user ?? null, loading, signUp, signIn, signOut }}
+      value={{ session, user, loading, serverConfigured, signUp, signIn, signOut }}
     >
       {children}
     </AuthContext.Provider>

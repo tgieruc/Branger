@@ -1,0 +1,9 @@
+export const apiJson = jest.fn().mockResolvedValue({ data: null, error: null, status: 200 });
+export const apiCall = jest.fn().mockResolvedValue({ ok: true, status: 200 });
+export const storeTokens = jest.fn().mockResolvedValue(undefined);
+export const clearTokens = jest.fn().mockResolvedValue(undefined);
+export const getAccessToken = jest.fn().mockResolvedValue(null);
+export const getUserFromToken = jest.fn().mockReturnValue(null);
+export const getServerUrl = jest.fn().mockResolvedValue('https://api.test.com');
+export const setServerUrl = jest.fn().mockResolvedValue(undefined);
+export const getWsUrl = jest.fn().mockResolvedValue('wss://api.test.com');

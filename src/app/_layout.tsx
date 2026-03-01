@@ -10,7 +10,7 @@ import { ToastProvider } from '../lib/toast';
 import { ToastContainer } from '../components/Toast';
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { session, loading } = useAuth();
+  const { session, loading, serverConfigured } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
@@ -20,11 +20,17 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     const inAuthGroup = segments[0] === '(tabs)';
     const inPublicRoute = segments[0] === 'share';
     const inListJoin = segments[0] === 'list';
-    const inResetFlow = segments[0] === 'reset-password' || segments[0] === 'forgot-password';
+    const inServerSetup = segments[0] === 'server-setup';
+
+    // If server is not configured, redirect to server setup
+    if (!serverConfigured && !inServerSetup && !inPublicRoute) {
+      router.replace('/server-setup');
+      return;
+    }
 
     if (!session && inAuthGroup) {
       router.replace('/login');
-    } else if (session && !inAuthGroup && !inPublicRoute && !inListJoin && !inResetFlow) {
+    } else if (session && !inAuthGroup && !inPublicRoute && !inListJoin && !inServerSetup) {
       AsyncStorage.getItem('pendingListJoin').then((pendingId) => {
         if (pendingId) {
           AsyncStorage.removeItem('pendingListJoin');
@@ -34,13 +40,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
         }
       });
     }
-  }, [session, loading, segments, router]);
-
-  // Handle deep links for password reset on native
-  // With PKCE flow, the auth-callback edge function redirects to
-  // branger://reset-password?code=xxx (query params, not hash fragments)
-  // Expo Router automatically parses query params into useLocalSearchParams,
-  // so no manual parsing is needed here.
+  }, [session, loading, segments, router, serverConfigured]);
 
   if (loading) return null;
 

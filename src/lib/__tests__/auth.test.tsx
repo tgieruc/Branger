@@ -2,19 +2,20 @@ import React from 'react';
 import { render, waitFor } from '@testing-library/react-native';
 import { Text } from 'react-native';
 import { AuthProvider, useAuth } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import { apiJson, storeTokens, clearTokens, getAccessToken, getUserFromToken, getServerUrl } from '@/lib/api';
 
-jest.mock('@/lib/supabase');
+jest.mock('@/lib/api');
+jest.mock('@/lib/cache', () => ({
+  clearAllCache: jest.fn().mockResolvedValue(undefined),
+}));
+
+const mockUser = { id: 'user-1', email: 'test@example.com', is_admin: false };
 
 beforeEach(() => {
   jest.clearAllMocks();
-  (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-    data: { session: null },
-    error: null,
-  });
-  (supabase.auth.onAuthStateChange as jest.Mock).mockReturnValue({
-    data: { subscription: { unsubscribe: jest.fn() } },
-  });
+  (getServerUrl as jest.Mock).mockResolvedValue('https://api.test.com');
+  (getAccessToken as jest.Mock).mockResolvedValue(null);
+  (getUserFromToken as jest.Mock).mockReturnValue(null);
 });
 
 function TestConsumer() {
@@ -46,6 +47,41 @@ describe('AuthProvider', () => {
       expect(getByText('logged-out')).toBeTruthy();
     });
   });
+
+  it('loads user from stored token on mount', async () => {
+    const mockToken = 'stored-access-token';
+    (getAccessToken as jest.Mock).mockResolvedValue(mockToken);
+    (getUserFromToken as jest.Mock).mockReturnValue(mockUser);
+
+    const { getByText } = render(
+      <AuthProvider>
+        <TestConsumer />
+      </AuthProvider>,
+    );
+
+    await waitFor(() => {
+      expect(getByText('logged-in')).toBeTruthy();
+    });
+  });
+
+  it('sets serverConfigured to false when no server URL', async () => {
+    (getServerUrl as jest.Mock).mockResolvedValue('');
+
+    function ServerCheck() {
+      const { serverConfigured, loading } = useAuth();
+      return <Text>{loading ? 'loading' : serverConfigured ? 'configured' : 'not-configured'}</Text>;
+    }
+
+    const { getByText } = render(
+      <AuthProvider>
+        <ServerCheck />
+      </AuthProvider>,
+    );
+
+    await waitFor(() => {
+      expect(getByText('not-configured')).toBeTruthy();
+    });
+  });
 });
 
 describe('useAuth', () => {
@@ -59,7 +95,11 @@ describe('useAuth', () => {
     consoleError.mockRestore();
   });
 
-  it('signIn calls supabase.auth.signInWithPassword', async () => {
+  it('signIn calls login endpoint and stores tokens', async () => {
+    const mockTokenData = { access_token: 'new-access', refresh_token: 'new-refresh' };
+    (apiJson as jest.Mock).mockResolvedValue({ data: mockTokenData, error: null, status: 200 });
+    (getUserFromToken as jest.Mock).mockReturnValue(mockUser);
+
     function SignInTest() {
       const { signIn } = useAuth();
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -74,14 +114,23 @@ describe('useAuth', () => {
     );
 
     await waitFor(() => {
-      expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
-        email: 'test@example.com',
-        password: 'password123',
-      });
+      expect(apiJson).toHaveBeenCalledWith(
+        '/api/auth/login',
+        {
+          method: 'POST',
+          body: JSON.stringify({ email: 'test@example.com', password: 'password123' }),
+        },
+        false,
+      );
+      expect(storeTokens).toHaveBeenCalledWith('new-access', 'new-refresh');
     });
   });
 
-  it('signUp calls supabase.auth.signUp', async () => {
+  it('signUp calls register endpoint and stores tokens', async () => {
+    const mockTokenData = { access_token: 'new-access', refresh_token: 'new-refresh' };
+    (apiJson as jest.Mock).mockResolvedValue({ data: mockTokenData, error: null, status: 200 });
+    (getUserFromToken as jest.Mock).mockReturnValue(mockUser);
+
     function SignUpTest() {
       const { signUp } = useAuth();
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -96,14 +145,21 @@ describe('useAuth', () => {
     );
 
     await waitFor(() => {
-      expect(supabase.auth.signUp).toHaveBeenCalledWith({
-        email: 'new@example.com',
-        password: 'newpass123',
-      });
+      expect(apiJson).toHaveBeenCalledWith(
+        '/api/auth/register',
+        {
+          method: 'POST',
+          body: JSON.stringify({ email: 'new@example.com', password: 'newpass123' }),
+        },
+        false,
+      );
+      expect(storeTokens).toHaveBeenCalledWith('new-access', 'new-refresh');
     });
   });
 
-  it('signOut calls supabase.auth.signOut', async () => {
+  it('signOut clears tokens and cache', async () => {
+    const { clearAllCache } = require('@/lib/cache');
+
     function SignOutTest() {
       const { signOut } = useAuth();
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -118,7 +174,8 @@ describe('useAuth', () => {
     );
 
     await waitFor(() => {
-      expect(supabase.auth.signOut).toHaveBeenCalled();
+      expect(clearTokens).toHaveBeenCalled();
+      expect(clearAllCache).toHaveBeenCalled();
     });
   });
 });

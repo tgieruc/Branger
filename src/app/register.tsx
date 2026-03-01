@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/lib/auth';
 import { useColors } from '@/hooks/useColors';
@@ -10,7 +10,6 @@ import { useColors } from '@/hooks/useColors';
 export default function RegisterScreen() {
   const { signUp } = useAuth();
   const colors = useColors();
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -29,10 +28,6 @@ export default function RegisterScreen() {
     const { error } = await signUp(email, password);
     if (error) {
       Alert.alert('Error', error.message);
-    } else {
-      Alert.alert('Success', 'Check your email to confirm your account', [
-        { text: 'OK', onPress: () => router.replace('/login') },
-      ]);
     }
     setLoading(false);
   };

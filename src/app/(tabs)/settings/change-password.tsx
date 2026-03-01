@@ -4,13 +4,11 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/lib/auth';
+import { apiJson } from '@/lib/api';
 import { useColors } from '@/hooks/useColors';
 import { useToast } from '@/lib/toast';
 
 export default function ChangePasswordScreen() {
-  const { user } = useAuth();
   const colors = useColors();
   const router = useRouter();
   const toast = useToast();
@@ -34,34 +32,20 @@ export default function ChangePasswordScreen() {
       return;
     }
 
-    if (!user?.email) {
-      Alert.alert('Error', 'Unable to verify account. Please sign out and sign in again.');
-      return;
-    }
-
     setLoading(true);
 
-    // Verify current password
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: user.email,
-      password: currentPassword,
-    });
-
-    if (signInError) {
-      setLoading(false);
-      Alert.alert('Error', 'Current password is incorrect');
-      return;
-    }
-
-    // Update to new password
-    const { error: updateError } = await supabase.auth.updateUser({
-      password: newPassword,
+    const { error } = await apiJson('/api/auth/change-password', {
+      method: 'PUT',
+      body: JSON.stringify({
+        current_password: currentPassword,
+        new_password: newPassword,
+      }),
     });
 
     setLoading(false);
 
-    if (updateError) {
-      Alert.alert('Error', updateError.message);
+    if (error) {
+      Alert.alert('Error', error);
       return;
     }
 
