@@ -4,6 +4,7 @@ from app.database import init_db
 from app.config import settings
 from app.auth.router import router as auth_router
 from app.recipes.router import router as recipes_router
+from app.share.router import router as share_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -15,6 +16,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Branger", lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(recipes_router)
+app.include_router(share_router)
 
 @app.get("/api/health")
 async def health():
