@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { supabase } from '@/lib/supabase';
+import { apiJson } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import type { RecipeWithDetails } from '@/lib/types';
 import { useColors } from '@/hooks/useColors';
@@ -19,19 +19,18 @@ export default function SharedRecipeScreen() {
   const [loading, setLoading] = useState(true);
 
   const fetchSharedRecipe = useCallback(async () => {
-    const { data, error } = await supabase.rpc('get_shared_recipe', { p_token: token });
+    const { data, error } = await apiJson<RecipeWithDetails>(`/api/share/${token}`, {}, false);
 
-    if (error || !data || typeof data !== 'object' || Array.isArray(data)) {
+    if (error || !data) {
       setLoading(false);
       return;
     }
 
-    const d = data as Record<string, any>;
     setRecipe({
-      ...d,
-      ingredients: d.ingredients ?? [],
-      steps: d.steps ?? [],
-    } as RecipeWithDetails);
+      ...data,
+      ingredients: data.ingredients ?? [],
+      steps: data.steps ?? [],
+    });
     setLoading(false);
   }, [token]);
 
@@ -45,47 +44,27 @@ export default function SharedRecipeScreen() {
       return;
     }
 
-    const { data: newRecipe, error } = await supabase
-      .from('recipes')
-      .insert({
+    const { error } = await apiJson('/api/recipes/', {
+      method: 'POST',
+      body: JSON.stringify({
         title: recipe.title,
-        user_id: user.id,
-        source_type: recipe.source_type,
-        photo_url: recipe.photo_url,
-      })
-      .select()
-      .single();
-
-    if (error || !newRecipe) {
-      Alert.alert('Error', 'Failed to save recipe');
-      return;
-    }
-
-    if (recipe.ingredients.length > 0) {
-      const { error: ingError } = await supabase.from('recipe_ingredients').insert(
-        recipe.ingredients.map((ing: any, i: number) => ({
-          recipe_id: newRecipe.id,
+        ingredients: recipe.ingredients.map((ing: any, i: number) => ({
           name: ing.name,
-          description: ing.description,
+          description: ing.description || '',
           position: i,
-        }))
-      );
-      if (ingError) {
-        Alert.alert('Warning', 'Recipe saved but some ingredients may be missing.');
-      }
-    }
-
-    if (recipe.steps.length > 0) {
-      const { error: stepError } = await supabase.from('recipe_steps').insert(
-        recipe.steps.map((step: any, i: number) => ({
-          recipe_id: newRecipe.id,
+        })),
+        steps: recipe.steps.map((step: any, i: number) => ({
           step_number: i + 1,
           instruction: step.instruction,
-        }))
-      );
-      if (stepError) {
-        Alert.alert('Warning', 'Recipe saved but some steps may be missing.');
-      }
+        })),
+        photo_url: recipe.photo_url,
+        source_type: recipe.source_type || 'manual',
+      }),
+    });
+
+    if (error) {
+      Alert.alert('Error', 'Failed to save recipe');
+      return;
     }
 
     Alert.alert('Saved!', 'Recipe saved to your collection.', [

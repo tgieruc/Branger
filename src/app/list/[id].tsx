@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '@/lib/supabase';
+import { apiJson } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useColors } from '@/hooks/useColors';
 
@@ -24,10 +24,10 @@ export default function JoinListScreen() {
     }
 
     setJoining(true);
-    supabase.rpc('join_list', { p_list_id: id }).then(({ error }) => {
+    apiJson(`/api/lists/${id}/join`, { method: 'POST' }).then(({ error }) => {
       setJoining(false);
       if (error) {
-        Alert.alert('Error', error.message || 'Could not join list');
+        Alert.alert('Error', error || 'Could not join list');
         router.replace('/(tabs)/lists');
         return;
       }
