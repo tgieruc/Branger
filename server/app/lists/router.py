@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.models import User
+from app.ws.manager import manager
 
 from .schemas import (
     BatchDeleteItems,
@@ -28,6 +29,11 @@ from .service import (
     update_item,
     update_list,
 )
+
+
+def _item_to_dict(item: ItemOut) -> dict:
+    """Convert an ItemOut pydantic model to a plain dict for broadcast."""
+    return item.model_dump()
 
 router = APIRouter(prefix="/api/lists", tags=["lists"])
 
@@ -119,6 +125,8 @@ async def add_items_endpoint(
     await _check_membership(db, list_id, user.id)
     items = await add_items(db, list_id, body)
     await db.commit()
+    for item in items:
+        await manager.broadcast(list_id, "INSERT", _item_to_dict(item))
     return items
 
 
@@ -138,6 +146,7 @@ async def update_item_endpoint(
             detail="Item not found",
         )
     await db.commit()
+    await manager.broadcast(list_id, "UPDATE", _item_to_dict(result))
     return result
 
 
@@ -158,6 +167,7 @@ async def delete_item_endpoint(
             detail="Item not found",
         )
     await db.commit()
+    await manager.broadcast(list_id, "DELETE", {"id": item_id})
 
 
 @router.delete("/{list_id}/items", status_code=status.HTTP_204_NO_CONTENT)
@@ -170,6 +180,8 @@ async def batch_delete_items_endpoint(
     await _check_membership(db, list_id, user.id)
     await batch_delete_items(db, body.item_ids)
     await db.commit()
+    for item_id in body.item_ids:
+        await manager.broadcast(list_id, "DELETE", {"id": item_id})
 
 
 @router.post("/{list_id}/join")
