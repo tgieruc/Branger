@@ -60,6 +60,24 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Integrations Section */}
+        <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>INTEGRATIONS</Text>
+        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => router.push('/(tabs)/settings/api-tokens')}
+            accessibilityLabel="Manage API tokens"
+            accessibilityRole="button"
+          >
+            <Ionicons name="key-outline" size={20} color={colors.primary} style={styles.rowIcon} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.rowLabel, { color: colors.text }]}>API Tokens</Text>
+              <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 2 }}>Connect AI agents to your account</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.chevron} style={{ marginLeft: 'auto' }} />
+          </TouchableOpacity>
+        </View>
+
         {/* Appearance Section */}
         <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>APPEARANCE</Text>
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>

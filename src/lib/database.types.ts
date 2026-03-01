@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_tokens: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          token_hash: string
+          token_prefix: string
+          last_used_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name?: string
+          token_hash: string
+          token_prefix: string
+          last_used_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          token_hash?: string
+          token_prefix?: string
+          last_used_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       list_items: {
         Row: {
           checked: boolean
@@ -214,6 +244,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_api_token: {
+        Args: {
+          p_name: string
+        }
+        Returns: {
+          token: string
+          token_prefix: string
+        }[]
+      }
       add_items_to_list: {
         Args: {
           p_list_id: string
