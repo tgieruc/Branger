@@ -501,10 +501,11 @@ async function handleListShoppingLists(supabase: SupabaseClient, userId: string)
     .order("updated_at", { ascending: false });
   if (listErr) return toolResult(`Error: ${listErr.message}`, true);
 
-  const { data: items } = await supabase
+  const { data: items, error: itemsErr } = await supabase
     .from("list_items")
     .select("list_id, checked")
     .in("list_id", listIds);
+  if (itemsErr) return toolResult(`Error fetching item counts: ${itemsErr.message}`, true);
 
   const counts: Record<string, { total: number; checked: number }> = {};
   for (const item of items ?? []) {
@@ -692,14 +693,24 @@ Deno.serve(async (req) => {
     }
 
     // Update last_used_at (fire-and-forget)
-    supabaseAdmin.rpc("update_token_last_used", { p_token_id: tokenResult.tokenId });
+    supabaseAdmin
+      .rpc("update_token_last_used", { p_token_id: tokenResult.tokenId })
+      .catch((err: unknown) => console.error("Failed to update token last_used_at:", err));
 
     // Mint user JWT and create scoped client
     const userJwt = await mintUserJwt(tokenResult.userId);
     const supabase = createUserClient(userJwt);
 
     // --- Parse JSON-RPC request ---
-    const body = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify(jsonRpcError(null, -32700, "Parse error: invalid JSON")),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
     const { id, method, params } = body;
 
     let result;

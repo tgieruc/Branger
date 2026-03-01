@@ -74,14 +74,18 @@ export default function ApiTokensScreen() {
   };
 
   const copyToClipboard = async (text: string, type: 'token' | 'endpoint') => {
-    if (Platform.OS === 'web') {
-      await navigator.clipboard.writeText(text);
-    } else {
-      const Clipboard = await import('expo-clipboard');
-      await Clipboard.setStringAsync(text);
+    try {
+      if (Platform.OS === 'web') {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const Clipboard = await import('expo-clipboard');
+        await Clipboard.setStringAsync(text);
+      }
+      setCopied(type);
+      setTimeout(() => setCopied(null), 2000);
+    } catch {
+      Alert.alert('Error', 'Failed to copy to clipboard');
     }
-    setCopied(type);
-    setTimeout(() => setCopied(null), 2000);
   };
 
   const formatDate = (dateStr: string) => {
