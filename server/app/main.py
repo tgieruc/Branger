@@ -1,10 +1,12 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from app.database import init_db
+from app.database import init_db, async_session
 from app.config import settings
+from app.auth.service import cleanup_expired_tokens
 from app.auth.router import router as auth_router
 from app.recipes.router import router as recipes_router
 from app.share.router import router as share_router
@@ -20,12 +22,21 @@ static_dir = Path(__file__).parent.parent / "static"
 async def lifespan(app: FastAPI):
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     settings.photos_dir.mkdir(parents=True, exist_ok=True)
-    # Mount static files for photo serving after ensuring directory exists
-    app.mount("/photos", StaticFiles(directory=settings.photos_dir), name="photos")
     await init_db()
+    # Clean up expired/revoked refresh tokens on startup
+    async with async_session() as db:
+        await cleanup_expired_tokens(db)
+        await db.commit()
     yield
 
 app = FastAPI(title="Branger", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.include_router(auth_router)
 app.include_router(recipes_router)
 app.include_router(share_router)
@@ -39,13 +50,20 @@ app.include_router(admin_router)
 async def health():
     return {"status": "ok"}
 
-# ── SPA catch-all (serves Expo web build from server/static/) ────
+# ── Static file mounts (order matters: specific before catch-all) ────
+# Photos served from data directory (ensure dir exists before mounting)
+settings.photos_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/photos", StaticFiles(directory=settings.photos_dir), name="photos")
+
+# SPA catch-all (serves Expo web build from server/static/)
 if static_dir.exists():
     app.mount("/assets", StaticFiles(directory=static_dir / "assets"), name="assets")
 
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):
-        file_path = static_dir / full_path
+        file_path = (static_dir / full_path).resolve()
+        if not file_path.is_relative_to(static_dir.resolve()):
+            return FileResponse(static_dir / "index.html")
         if file_path.exists() and file_path.is_file():
             return FileResponse(file_path)
         return FileResponse(static_dir / "index.html")

@@ -39,7 +39,7 @@ export default function EditRecipeScreen() {
 
     if (!data) {
       Alert.alert('Error', 'Recipe not found');
-      router.back();
+      router.replace('/(tabs)/recipes');
       return;
     }
 
@@ -168,7 +168,7 @@ export default function EditRecipeScreen() {
     }
 
     setSaving(false);
-    router.back();
+    router.replace('/(tabs)/recipes');
   };
 
   if (loading) {

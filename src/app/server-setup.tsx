@@ -13,10 +13,14 @@ export default function ServerSetupScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleConnect = async () => {
-    const trimmed = url.trim().replace(/\/$/, '');
+    let trimmed = url.trim().replace(/\/$/, '');
     if (!trimmed) {
       Alert.alert('Error', 'Please enter a server URL');
       return;
+    }
+    // Auto-prepend http:// if no scheme provided
+    if (!/^https?:\/\//i.test(trimmed)) {
+      trimmed = `http://${trimmed}`;
     }
 
     setLoading(true);

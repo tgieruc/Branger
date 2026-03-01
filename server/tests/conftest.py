@@ -8,12 +8,12 @@ import app.models  # noqa: F401  -- register models with Base before create_all
 
 
 @pytest.fixture(autouse=True)
-def override_photos_dir(tmp_path):
-    original = settings.photos_dir
-    settings.photos_dir = tmp_path / "photos"
+def override_data_dir(tmp_path):
+    original = settings.data_dir
+    settings.data_dir = tmp_path
     settings.photos_dir.mkdir(parents=True, exist_ok=True)
     yield
-    settings.photos_dir = original
+    settings.data_dir = original
 
 
 @pytest.fixture

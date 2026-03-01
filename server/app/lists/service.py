@@ -165,10 +165,10 @@ async def add_items(
 
 
 async def update_item(
-    db: AsyncSession, item_id: str, data: ItemUpdate
+    db: AsyncSession, list_id: str, item_id: str, data: ItemUpdate
 ) -> ItemOut | None:
     result = await db.execute(
-        select(ListItem).where(ListItem.id == item_id)
+        select(ListItem).where(ListItem.id == item_id, ListItem.list_id == list_id)
     )
     item = result.scalar_one_or_none()
     if item is None:
@@ -193,9 +193,9 @@ async def update_item(
     )
 
 
-async def delete_item(db: AsyncSession, item_id: str) -> bool:
+async def delete_item(db: AsyncSession, list_id: str, item_id: str) -> bool:
     result = await db.execute(
-        select(ListItem).where(ListItem.id == item_id)
+        select(ListItem).where(ListItem.id == item_id, ListItem.list_id == list_id)
     )
     item = result.scalar_one_or_none()
     if item is None:
@@ -205,9 +205,9 @@ async def delete_item(db: AsyncSession, item_id: str) -> bool:
     return True
 
 
-async def batch_delete_items(db: AsyncSession, item_ids: list[str]) -> None:
+async def batch_delete_items(db: AsyncSession, list_id: str, item_ids: list[str]) -> None:
     await db.execute(
-        delete(ListItem).where(ListItem.id.in_(item_ids))
+        delete(ListItem).where(ListItem.id.in_(item_ids), ListItem.list_id == list_id)
     )
     await db.flush()
 

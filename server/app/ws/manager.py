@@ -12,7 +12,10 @@ class ConnectionManager:
         self._connections[list_id].append(websocket)
 
     def disconnect(self, list_id: str, websocket: WebSocket):
-        self._connections[list_id].remove(websocket)
+        try:
+            self._connections[list_id].remove(websocket)
+        except ValueError:
+            return
         if not self._connections[list_id]:
             del self._connections[list_id]
 

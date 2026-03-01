@@ -120,14 +120,14 @@ def validate_url(url: str) -> str:
         if hostname.lower().endswith(domain):
             raise ValueError("URL points to a disallowed domain")
 
-    # Resolve DNS and check for private IPs
+    # Resolve DNS and check for private IPs (both IPv4 and IPv6)
     try:
-        resolved = socket.getaddrinfo(hostname, None, socket.AF_INET)
+        resolved = socket.getaddrinfo(hostname, None)
         ips = [addr[4][0] for addr in resolved]
         if ips and all(is_private_ip(ip) for ip in ips):
             raise ValueError("URL resolves to a private/internal address")
     except socket.gaierror:
-        pass  # DNS resolution failed; allow hostname-only validation to pass
+        raise ValueError("Could not resolve hostname")
 
     return url
 

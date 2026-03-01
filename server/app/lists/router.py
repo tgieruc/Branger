@@ -139,7 +139,7 @@ async def update_item_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     await _check_membership(db, list_id, user.id)
-    result = await update_item(db, item_id, body)
+    result = await update_item(db, list_id, item_id, body)
     if result is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -160,7 +160,7 @@ async def delete_item_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     await _check_membership(db, list_id, user.id)
-    deleted = await delete_item(db, item_id)
+    deleted = await delete_item(db, list_id, item_id)
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -178,7 +178,7 @@ async def batch_delete_items_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     await _check_membership(db, list_id, user.id)
-    await batch_delete_items(db, body.item_ids)
+    await batch_delete_items(db, list_id, body.item_ids)
     await db.commit()
     for item_id in body.item_ids:
         await manager.broadcast(list_id, "DELETE", {"id": item_id})

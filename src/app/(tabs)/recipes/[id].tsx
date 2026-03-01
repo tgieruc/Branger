@@ -79,7 +79,7 @@ export default function RecipeDetailScreen() {
       Alert.alert('Error', 'Failed to delete recipe.');
       return;
     }
-    router.back();
+    router.replace('/(tabs)/recipes');
   };
 
   const handleShare = async () => {
@@ -87,7 +87,7 @@ export default function RecipeDetailScreen() {
     let shareUrl: string;
     if (recipe.share_token) {
       const serverUrl = await getServerUrl();
-      shareUrl = `${serverUrl}/api/share/${recipe.share_token}`;
+      shareUrl = `${serverUrl}/share/${recipe.share_token}`;
     } else {
       const { data } = await apiJson<{ share_token: string; share_url: string }>(
         `/api/recipes/${id}/share`,
@@ -180,7 +180,7 @@ export default function RecipeDetailScreen() {
           title="Recipe not found"
           subtitle="This recipe may have been deleted"
           actionLabel="Go Back"
-          onAction={() => router.back()}
+          onAction={() => router.replace('/(tabs)/recipes')}
         />
       </View>
     );

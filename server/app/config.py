@@ -8,8 +8,11 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 30
     mistral_api_key: str = ""
     data_dir: Path = Path("data")
-    photos_dir: Path = Path("data/photos")
 
     model_config = {"env_prefix": ""}
+
+    @property
+    def photos_dir(self) -> Path:
+        return self.data_dir / "photos"
 
 settings = Settings()

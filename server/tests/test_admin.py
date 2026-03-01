@@ -1,5 +1,12 @@
+import jwt
 import pytest
 from httpx import AsyncClient
+
+from app.config import settings
+
+
+def decode_access_token(token: str) -> dict:
+    return jwt.decode(token, settings.secret_key, algorithms=["HS256"])
 
 
 # ── Admin password reset ──────────────────────────────────────────
@@ -7,22 +14,18 @@ from httpx import AsyncClient
 
 async def test_admin_reset_password(client):
     # Register admin (first user)
-    await client.post(
+    admin_reg = await client.post(
         "/api/auth/register",
         json={"email": "admin@t.com", "password": "password123"},
     )
-    login = await client.post(
-        "/api/auth/login",
-        json={"email": "admin@t.com", "password": "password123"},
-    )
-    admin_headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    admin_headers = {"Authorization": f"Bearer {admin_reg.json()['access_token']}"}
 
     # Register regular user
     reg = await client.post(
         "/api/auth/register",
         json={"email": "user@t.com", "password": "old_pass"},
     )
-    user_id = reg.json()["id"]
+    user_id = decode_access_token(reg.json()["access_token"])["sub"]
 
     # Admin resets user's password
     resp = await client.put(
@@ -52,14 +55,12 @@ async def test_non_admin_cannot_reset_password(client):
         "/api/auth/register",
         json={"email": "user@t.com", "password": "password123"},
     )
-    login = await client.post(
-        "/api/auth/login",
-        json={"email": "user@t.com", "password": "password123"},
-    )
-    user_headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    user_token = reg.json()["access_token"]
+    user_id = decode_access_token(user_token)["sub"]
+    user_headers = {"Authorization": f"Bearer {user_token}"}
 
     resp = await client.put(
-        f"/api/admin/users/{reg.json()['id']}/reset-password",
+        f"/api/admin/users/{user_id}/reset-password",
         json={"new_password": "hacked"},
         headers=user_headers,
     )

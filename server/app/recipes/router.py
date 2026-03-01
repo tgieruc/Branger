@@ -116,5 +116,5 @@ async def share_recipe_endpoint(
             detail="Recipe not found",
         )
     await db.commit()
-    share_url = f"{request.base_url}api/share/{token}"
+    share_url = f"{request.base_url}share/{token}"
     return ShareOut(share_token=token, share_url=share_url)

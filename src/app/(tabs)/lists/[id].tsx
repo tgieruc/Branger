@@ -191,7 +191,7 @@ export default function ListDetailScreen() {
     if (!user) return;
     setDeleteListVisible(false);
     await apiCall(`/api/lists/${id}`, { method: 'DELETE' });
-    router.back();
+    router.replace('/(tabs)/lists');
   };
 
   const handleShareList = async () => {

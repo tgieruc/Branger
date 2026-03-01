@@ -1,4 +1,11 @@
+import jwt
 import pytest
+
+from app.config import settings
+
+
+def decode_access_token(token: str) -> dict:
+    return jwt.decode(token, settings.secret_key, algorithms=["HS256"])
 
 
 # ── Registration ───────────────────────────────────────────────────
@@ -9,9 +16,12 @@ async def test_register_first_user_becomes_admin(client):
     )
     assert resp.status_code == 201
     data = resp.json()
-    assert data["email"] == "admin@example.com"
-    assert data["is_admin"] is True
-    assert "id" in data
+    assert "access_token" in data
+    assert "refresh_token" in data
+    claims = decode_access_token(data["access_token"])
+    assert claims["email"] == "admin@example.com"
+    assert claims["is_admin"] is True
+    assert "sub" in claims
 
 
 async def test_register_second_user_is_not_admin(client):
@@ -25,7 +35,8 @@ async def test_register_second_user_is_not_admin(client):
     )
     assert resp.status_code == 201
     data = resp.json()
-    assert data["is_admin"] is False
+    claims = decode_access_token(data["access_token"])
+    assert claims["is_admin"] is False
 
 
 async def test_register_duplicate_email_fails(client):

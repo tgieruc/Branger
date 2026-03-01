@@ -242,7 +242,7 @@ export default function CreateRecipeScreen() {
     setSaving(false);
     toast.show('Recipe saved!');
     isDirty.current = false;
-    router.back();
+    router.replace('/(tabs)/recipes');
   };
 
   return (

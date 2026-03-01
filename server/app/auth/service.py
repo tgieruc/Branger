@@ -4,7 +4,7 @@ from hashlib import sha256
 
 import bcrypt
 import jwt
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -94,3 +94,23 @@ async def register_user(
 async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
     result = await db.execute(select(User).where(User.email == email))
     return result.scalar_one_or_none()
+
+
+async def revoke_user_tokens(db: AsyncSession, user_id: str) -> None:
+    """Revoke all refresh tokens for a user."""
+    await db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user_id, RefreshToken.revoked == False)  # noqa: E712
+        .values(revoked=True)
+    )
+
+
+async def cleanup_expired_tokens(db: AsyncSession) -> int:
+    """Delete expired or revoked refresh tokens. Returns count deleted."""
+    result = await db.execute(
+        delete(RefreshToken).where(
+            (RefreshToken.revoked == True)  # noqa: E712
+            | (RefreshToken.expires_at < datetime.now(timezone.utc))
+        )
+    )
+    return result.rowcount

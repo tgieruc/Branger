@@ -84,7 +84,7 @@ export default function SharedRecipeScreen() {
           title="Recipe not found"
           subtitle="This recipe may have been deleted or the link has expired"
           actionLabel="Go Back"
-          onAction={() => router.back()}
+          onAction={() => router.replace('/(tabs)/recipes')}
         />
       </View>
     );

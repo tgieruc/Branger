@@ -250,3 +250,15 @@ Tests written first as regression spec, then implementation to make them pass:
 - **Share tests**: generate token, public access, save-to-my-recipes
 - **Photo tests**: upload, serve, user scoping
 - **Admin tests**: password reset, admin-only access
+
+## 12. Implementation Deviations
+
+The following deviations from this design were accepted during implementation:
+
+| Design | Implementation | Rationale |
+|--------|---------------|-----------|
+| s6-overlay process supervisor | Plain `CMD uvicorn` | Single process; s6-overlay adds complexity for no benefit at household scale |
+| FTS5 virtual table for recipe search | LIKE-based search | Simpler, sufficient for small datasets; FTS5 can be added later if needed |
+| Separate `quantity`/`unit` on ingredients | Single `description` field | Matches existing frontend data shape, avoids complex parsing |
+| `description` field on Recipe model | Not implemented | Frontend never used it; can be added if needed |
+| Formal SQL migrations | `Base.metadata.create_all` | SQLite + single-user; no migration tooling needed yet |

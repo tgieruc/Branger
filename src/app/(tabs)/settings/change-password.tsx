@@ -50,7 +50,7 @@ export default function ChangePasswordScreen() {
     }
 
     toast.show('Password changed successfully!');
-    router.back();
+    router.replace('/(tabs)/settings');
   };
 
   return (

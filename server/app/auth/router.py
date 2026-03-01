@@ -26,7 +26,7 @@ from .service import (
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
-@router.post("/register", status_code=status.HTTP_201_CREATED, response_model=UserResponse)
+@router.post("/register", status_code=status.HTTP_201_CREATED, response_model=TokenResponse)
 async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     existing = await get_user_by_email(db, body.email)
     if existing is not None:
@@ -35,8 +35,10 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
             detail="Email already registered",
         )
     user = await register_user(db, body.email, body.password)
+    access_token = create_access_token(user)
+    refresh_token = await create_refresh_token(db, user.id)
     await db.commit()
-    return UserResponse(id=user.id, email=user.email, is_admin=user.is_admin)
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
 @router.post("/login", response_model=TokenResponse)

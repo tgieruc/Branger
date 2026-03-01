@@ -6,7 +6,7 @@ from getpass import getpass
 async def reset_password_command(email: str, new_password: str):
     # Import here to avoid circular imports at module level
     from app.database import async_session, init_db
-    from app.auth.service import get_user_by_email, hash_password
+    from app.auth.service import get_user_by_email, hash_password, revoke_user_tokens
 
     await init_db()
     async with async_session() as db:
@@ -15,8 +15,9 @@ async def reset_password_command(email: str, new_password: str):
             print(f"Error: User '{email}' not found")
             sys.exit(1)
         user.password_hash = hash_password(new_password)
+        await revoke_user_tokens(db, user.id)
         await db.commit()
-        print(f"Password reset successfully for {email}")
+        print(f"Password reset successfully for {email} (all sessions revoked)")
 
 
 def main():
