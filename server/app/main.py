@@ -7,6 +7,7 @@ from app.recipes.router import router as recipes_router
 from app.share.router import router as share_router
 from app.lists.router import router as lists_router
 from app.ws.router import router as ws_router
+from app.parse.router import router as parse_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -21,6 +22,7 @@ app.include_router(recipes_router)
 app.include_router(share_router)
 app.include_router(lists_router)
 app.include_router(ws_router)
+app.include_router(parse_router)
 
 @app.get("/api/health")
 async def health():
