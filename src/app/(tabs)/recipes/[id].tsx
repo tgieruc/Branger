@@ -104,7 +104,7 @@ export default function RecipeDetailScreen() {
       }
       setRecipe({ ...recipe, share_token: token });
     }
-    const shareUrl = `branger://share/${token}`;
+    const shareUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/share-redirect/recipe/${token}`;
     try {
       await Share.share({
         message: Platform.OS === 'ios'
