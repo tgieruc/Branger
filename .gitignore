@@ -56,3 +56,10 @@ app-example
 
 # Supabase temp
 supabase/.temp/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+server/data/
