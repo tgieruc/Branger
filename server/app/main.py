@@ -1,5 +1,7 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from app.database import init_db
 from app.config import settings
@@ -11,6 +13,8 @@ from app.ws.router import router as ws_router
 from app.parse.router import router as parse_router
 from app.photos.router import router as photos_router
 from app.admin.router import router as admin_router
+
+static_dir = Path(__file__).parent.parent / "static"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -34,3 +38,14 @@ app.include_router(admin_router)
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+# ── SPA catch-all (serves Expo web build from server/static/) ────
+if static_dir.exists():
+    app.mount("/assets", StaticFiles(directory=static_dir / "assets"), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        file_path = static_dir / full_path
+        if file_path.exists() and file_path.is_file():
+            return FileResponse(file_path)
+        return FileResponse(static_dir / "index.html")

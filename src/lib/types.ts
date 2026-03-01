@@ -1,32 +1,52 @@
-import type { Database } from '@/lib/database.types';
+// Standalone types matching the self-hosted API response shapes
 
-// Row types from Supabase
-type Tables = Database['public']['Tables'];
+// Matches server RecipeOut
+export type Recipe = {
+  id: string;
+  title: string;
+  photo_url: string | null;
+  share_token: string | null;
+  source_type: string;
+  source_url: string | null;
+  servings: string | null;
+  prep_time: string | null;
+  cook_time: string | null;
+  created_at: string;
+  updated_at: string;
+};
 
-export type Recipe = Tables['recipes']['Row'];
-export type RecipeInsert = Tables['recipes']['Insert'];
-export type RecipeIngredient = Tables['recipe_ingredients']['Row'];
-export type RecipeIngredientInsert = Tables['recipe_ingredients']['Insert'];
-export type RecipeStep = Tables['recipe_steps']['Row'];
-export type RecipeStepInsert = Tables['recipe_steps']['Insert'];
-export type ShoppingList = Tables['shopping_lists']['Row'];
-export type ShoppingListInsert = Tables['shopping_lists']['Insert'];
-export type ListMember = Tables['list_members']['Row'];
-export type ListItem = Tables['list_items']['Row'];
-export type ListItemInsert = Tables['list_items']['Insert'];
+// Matches server IngredientOut
+export type RecipeIngredient = {
+  id: string;
+  name: string;
+  description: string;
+  position: number;
+};
 
-// Composite types for UI
+// Matches server StepOut
+export type RecipeStep = {
+  id: string;
+  step_number: number;
+  instruction: string;
+};
+
 export type RecipeWithDetails = Recipe & {
   ingredients: RecipeIngredient[];
   steps: RecipeStep[];
 };
 
-export type ShoppingListWithItems = ShoppingList & {
-  items: ListItem[];
-  members: ListMember[];
+// Matches server ItemOut
+export type ListItem = {
+  id: string;
+  list_id: string;
+  name: string;
+  description: string | null;
+  checked: boolean;
+  recipe_id: string | null;
+  position: number;
+  created_at: string;
 };
 
-// AI pipeline types
 export type AIRecipeResult = {
   title: string;
   ingredients: { name: string; description: string }[];

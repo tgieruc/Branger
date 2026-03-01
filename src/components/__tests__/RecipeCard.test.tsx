@@ -16,7 +16,9 @@ const baseRecipe: Recipe = {
   source_type: 'text',
   source_url: null,
   share_token: null,
-  user_id: 'user-1',
+  servings: null,
+  prep_time: null,
+  cook_time: null,
   created_at: '2025-06-15T12:00:00Z',
   updated_at: '2025-06-15T12:00:00Z',
 };
