@@ -30,31 +30,8 @@ Deno.serve((req) => {
     });
   }
 
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="refresh" content="1;url=${deepLink}">
-  <title>Branger</title>
-  <style>
-    body { font-family: -apple-system, system-ui, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #f5f5f5; color: #333; text-align: center; }
-    .container { padding: 2rem; }
-    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-    p { color: #666; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>Opening Branger...</h1>
-    <p>If nothing happens, you may need to install the app.</p>
-  </div>
-  <script>window.location.href = "${deepLink}";</script>
-</body>
-</html>`;
-
-  return new Response(html, {
-    status: 200,
-    headers: { "Content-Type": "text/html; charset=utf-8" },
+  return new Response(null, {
+    status: 302,
+    headers: { Location: deepLink },
   });
 });
