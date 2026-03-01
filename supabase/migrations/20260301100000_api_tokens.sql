@@ -59,7 +59,11 @@ BEGIN
 
   IF btrim(p_name) = '' OR p_name IS NULL THEN
     p_name := 'API Token';
+  ELSIF length(btrim(p_name)) > 255 THEN
+    RAISE EXCEPTION 'Token name must be 255 characters or less';
   END IF;
+
+  p_name := btrim(p_name);
 
   -- Generate token: brg_ prefix + 64 hex chars (32 random bytes)
   v_token := 'brg_' || encode(gen_random_bytes(32), 'hex');
