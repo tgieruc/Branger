@@ -6,7 +6,7 @@ Recipe & collaborative shopping list app with AI-powered recipe import.
 
 - **Frontend:** React Native 0.81.5, Expo SDK 54, Expo Router v6, TypeScript 5.9
 - **Backend:** Supabase (PostgreSQL, Auth, Storage, Edge Functions)
-- **AI:** OpenAI GPT-4o (recipe parsing), Mistral pixtral-large (photo OCR)
+- **AI:** Mistral Large (recipe parsing), Mistral OCR (photo text extraction)
 - **Testing:** Jest 29 + React Native Testing Library
 
 ## Project Structure
@@ -80,6 +80,5 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY= # Supabase anonymous key
 
 Edge functions also need (set in Supabase dashboard):
 ```
-OPENAI_API_KEY=      # For recipe text/URL/photo parsing
-MISTRAL_API_KEY=     # For photo OCR
+MISTRAL_API_KEY=     # For all recipe parsing (OCR + structuring)
 ```

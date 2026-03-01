@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import * as jose from "jsr:@panva/jose@6";
 
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
+const MISTRAL_API_KEY = Deno.env.get("MISTRAL_API_KEY")!;
 
 const SUPABASE_JWT_ISSUER = Deno.env.get("SUPABASE_URL")! + "/auth/v1";
 const SUPABASE_JWT_KEYS = jose.createRemoteJWKSet(
@@ -69,8 +69,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (text.length > 10000) {
-      return new Response(JSON.stringify({ error: "Text is too long. Maximum 10,000 characters." }), {
+    if (text.length > 15000) {
+      return new Response(JSON.stringify({ error: "Text is too long. Maximum 15,000 characters." }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
@@ -79,14 +79,14 @@ Deno.serve(async (req) => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        Authorization: `Bearer ${MISTRAL_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o",
+        model: "mistral-large-latest",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: text },
@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       const errorBody = await response.text();
-      throw new Error(`OpenAI API error (${response.status}): ${errorBody}`);
+      throw new Error(`Mistral API error (${response.status}): ${errorBody}`);
     }
 
     const data = await response.json();

@@ -1,7 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import * as jose from "jsr:@panva/jose@6";
 
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
 const MISTRAL_API_KEY = Deno.env.get("MISTRAL_API_KEY")!;
 
 const SUPABASE_JWT_ISSUER = Deno.env.get("SUPABASE_URL")! + "/auth/v1";
@@ -99,58 +98,55 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 1: OCR with Mistral pixtral (with timeout)
-    const imageContentBlocks = imageUrls.map((url) => ({
-      type: "image_url" as const,
-      image_url: { url },
-    }));
-
+    // Step 1: OCR with mistral-ocr-latest (dedicated endpoint, one image at a time)
     const ocrController = new AbortController();
-    const ocrTimeout = setTimeout(() => ocrController.abort(), 45000);
-    const ocrResponse = await fetch("https://api.mistral.ai/v1/chat/completions", {
+    const ocrTimeout = setTimeout(() => ocrController.abort(), 60000);
+
+    const ocrPages: string[] = [];
+    for (const url of imageUrls) {
+      const ocrResponse = await fetch("https://api.mistral.ai/v1/ocr", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${MISTRAL_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "mistral-ocr-latest",
+          document: {
+            type: "image_url",
+            image_url: url,
+          },
+        }),
+        signal: ocrController.signal,
+      });
+
+      if (!ocrResponse.ok) {
+        const errorBody = await ocrResponse.text();
+        throw new Error(`Mistral OCR error (${ocrResponse.status}): ${errorBody}`);
+      }
+
+      const ocrData = await ocrResponse.json();
+      for (const page of ocrData.pages || []) {
+        if (page.markdown) {
+          ocrPages.push(page.markdown);
+        }
+      }
+    }
+    clearTimeout(ocrTimeout);
+
+    const extractedText = ocrPages.join("\n\n");
+
+    // Step 2: Structure with mistral-large
+    const aiController = new AbortController();
+    const aiTimeout = setTimeout(() => aiController.abort(), 30000);
+    const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${MISTRAL_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "pixtral-large-latest",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Extract ALL text from these images. They may be multiple screenshots of the same content with overlap — deduplicate and return the combined text in order.",
-              },
-              ...imageContentBlocks,
-            ],
-          },
-        ],
-      }),
-      signal: ocrController.signal,
-    });
-    clearTimeout(ocrTimeout);
-
-    if (!ocrResponse.ok) {
-      const errorBody = await ocrResponse.text();
-      throw new Error(`Mistral API error (${ocrResponse.status}): ${errorBody}`);
-    }
-
-    const ocrData = await ocrResponse.json();
-    const extractedText = ocrData.choices[0].message.content;
-
-    // Step 2: Structure with OpenAI (with timeout)
-    const aiController = new AbortController();
-    const aiTimeout = setTimeout(() => aiController.abort(), 30000);
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o",
+        model: "mistral-large-latest",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: `OCR extracted text:\n\n${extractedText}` },
@@ -164,7 +160,7 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       const errorBody = await response.text();
-      throw new Error(`OpenAI API error (${response.status}): ${errorBody}`);
+      throw new Error(`Mistral API error (${response.status}): ${errorBody}`);
     }
 
     const data = await response.json();
