@@ -16,8 +16,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import * as Crypto from 'expo-crypto';
-import { supabase } from '@/lib/supabase';
+import { apiJson, apiCall, getServerUrl } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { getCachedRecipeDetail, setCachedRecipeDetail } from '@/lib/cache';
 import { useColors } from '@/hooks/useColors';
@@ -53,24 +52,15 @@ export default function RecipeDetailScreen() {
     }
 
     // Fetch fresh data from network
-    const [recipeRes, ingredientsRes, stepsRes] = await Promise.all([
-      supabase.from('recipes').select('*').eq('id', id!).single(),
-      supabase.from('recipe_ingredients').select('*').eq('recipe_id', id!).order('position'),
-      supabase.from('recipe_steps').select('*').eq('recipe_id', id!).order('step_number'),
-    ]);
+    const { data } = await apiJson<RecipeWithDetails>(`/api/recipes/${id}`);
 
-    if (!recipeRes.data) {
+    if (!data) {
       setLoading(false);
       return;
     }
 
-    const recipeWithDetails: RecipeWithDetails = {
-      ...recipeRes.data,
-      ingredients: ingredientsRes.data ?? [],
-      steps: stepsRes.data ?? [],
-    };
-    setRecipe(recipeWithDetails);
-    setCachedRecipeDetail(id!, recipeWithDetails);
+    setRecipe(data);
+    setCachedRecipeDetail(id!, data);
     setLoading(false);
   }, [id]);
 
@@ -84,19 +74,25 @@ export default function RecipeDetailScreen() {
 
   const confirmDelete = async () => {
     setDeleteConfirmVisible(false);
-    await supabase.from('recipes').delete().eq('id', id!);
+    await apiCall(`/api/recipes/${id}`, { method: 'DELETE' });
     router.back();
   };
 
   const handleShare = async () => {
     if (!recipe) return;
-    let token = recipe.share_token;
-    if (!token) {
-      token = Crypto.randomUUID();
-      await supabase.from('recipes').update({ share_token: token }).eq('id', id!);
-      setRecipe({ ...recipe, share_token: token });
+    let shareUrl: string;
+    if (recipe.share_token) {
+      const serverUrl = await getServerUrl();
+      shareUrl = `${serverUrl}/share/${recipe.share_token}`;
+    } else {
+      const { data } = await apiJson<{ share_token: string; share_url: string }>(
+        `/api/recipes/${id}/share`,
+        { method: 'POST' },
+      );
+      if (!data) return;
+      setRecipe({ ...recipe, share_token: data.share_token });
+      shareUrl = data.share_url;
     }
-    const shareUrl = `branger://share/${token}`;
     try {
       await Share.share({
         message: Platform.OS === 'ios'
@@ -112,14 +108,9 @@ export default function RecipeDetailScreen() {
   const handleAddToList = async () => {
     if (!recipe || !user) return;
 
-    const { data: memberships } = await supabase
-      .from('list_members')
-      .select('list_id, shopping_lists(id, name)')
-      .eq('user_id', user.id);
+    const { data } = await apiJson<{ id: string; name: string }[]>('/api/lists/');
 
-    const lists = (memberships ?? [])
-      .map((m: Record<string, unknown>) => m.shopping_lists as { id: string; name: string } | null)
-      .filter((l): l is { id: string; name: string } => l !== null);
+    const lists = (data ?? []).map((l) => ({ id: l.id, name: l.name }));
 
     setAvailableLists(lists);
     setShowNewListInput(false);
@@ -130,16 +121,17 @@ export default function RecipeDetailScreen() {
   const createListAndAddIngredients = async () => {
     if (!newListName.trim() || !recipe) return;
 
-    const { data: newListId, error: createError } = await supabase.rpc('create_list_with_member', {
-      list_name: newListName.trim(),
-    });
+    const { data: newList, error: createError } = await apiJson<{ id: string; name: string }>(
+      '/api/lists/',
+      { method: 'POST', body: JSON.stringify({ name: newListName.trim() }) },
+    );
 
-    if (createError || !newListId) {
-      Alert.alert('Error', createError?.message ?? 'Failed to create list.');
+    if (createError || !newList) {
+      Alert.alert('Error', createError ?? 'Failed to create list.');
       return;
     }
 
-    await addIngredientsToList({ id: newListId, name: newListName.trim() });
+    await addIngredientsToList({ id: newList.id, name: newList.name });
   };
 
   const addIngredientsToList = async (list: ListOption) => {
@@ -147,13 +139,15 @@ export default function RecipeDetailScreen() {
     setAddingToList(true);
     setListPickerVisible(false);
 
-    const { error } = await supabase.rpc('add_items_to_list', {
-      p_list_id: list.id,
-      p_items: recipe.ingredients.map((ing) => ({
-        name: ing.name,
-        description: ing.description || null,
-        recipe_id: recipe.id,
-      })),
+    const { error } = await apiJson(`/api/lists/${list.id}/items`, {
+      method: 'POST',
+      body: JSON.stringify({
+        items: recipe.ingredients.map((ing) => ({
+          name: ing.name,
+          description: ing.description || null,
+          recipe_id: recipe.id,
+        })),
+      }),
     });
 
     setAddingToList(false);

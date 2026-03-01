@@ -1,14 +1,9 @@
 import { parseRecipeFromText, parseRecipeFromUrl, parseRecipeFromPhoto, parseRecipeFromPhotos } from '@/lib/ai';
-import { supabase } from '@/lib/supabase';
 
-jest.mock('@/lib/supabase');
+jest.mock('@/lib/api');
 
-const mockSession = {
-  access_token: 'test-token',
-  refresh_token: 'test-refresh',
-  expires_at: Math.floor(Date.now() / 1000) + 3600,
-  user: { id: 'test-user' },
-};
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { apiJson } = require('@/lib/api');
 
 const mockRecipeResult = {
   title: 'Test Recipe',
@@ -16,101 +11,46 @@ const mockRecipeResult = {
   steps: ['Mix ingredients', 'Bake at 350F'],
 };
 
-const originalFetch = global.fetch;
-
 beforeEach(() => {
   jest.clearAllMocks();
-
-  (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-    data: { session: mockSession },
-  });
-  (supabase.auth.refreshSession as jest.Mock).mockResolvedValue({
-    data: { session: mockSession },
-  });
-
-  global.fetch = jest.fn().mockResolvedValue({
-    ok: true,
-    json: () => Promise.resolve(mockRecipeResult),
-  });
-});
-
-afterEach(() => {
-  global.fetch = originalFetch;
+  apiJson.mockResolvedValue({ data: mockRecipeResult, error: null, status: 200 });
 });
 
 describe('parseRecipeFromText', () => {
-  it('calls fetch with correct endpoint and headers', async () => {
+  it('calls apiJson with correct endpoint and body', async () => {
     const result = await parseRecipeFromText('My recipe text');
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/functions/v1/parse-recipe-text'),
+    expect(apiJson).toHaveBeenCalledWith(
+      '/api/recipes/parse/text',
       expect.objectContaining({
         method: 'POST',
-        headers: expect.objectContaining({
-          Authorization: `Bearer ${mockSession.access_token}`,
-        }),
         body: JSON.stringify({ text: 'My recipe text' }),
       }),
     );
     expect(result).toEqual(mockRecipeResult);
   });
 
-  it('throws when not signed in', async () => {
-    (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-      data: { session: null },
-    });
-
-    await expect(parseRecipeFromText('text')).rejects.toThrow(
-      'You must be signed in to use AI features',
-    );
-  });
-
-  it('throws when session refresh fails', async () => {
-    // Session expires within 60s, so refresh is triggered
-    const expiringSession = {
-      ...mockSession,
-      expires_at: Math.floor(Date.now() / 1000) + 30,
-    };
-    (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-      data: { session: expiringSession },
-    });
-    (supabase.auth.refreshSession as jest.Mock).mockResolvedValue({
-      data: { session: null },
-    });
-
-    await expect(parseRecipeFromText('text')).rejects.toThrow(
-      'You must be signed in to use AI features',
-    );
-  });
-
-  it('throws with error message from API response', async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: false,
-      status: 400,
-      json: () => Promise.resolve({ error: 'text is required' }),
-    });
+  it('throws when apiJson returns an error', async () => {
+    apiJson.mockResolvedValue({ data: null, error: 'text is required', status: 400 });
 
     await expect(parseRecipeFromText('')).rejects.toThrow('text is required');
   });
 
-  it('throws default message when error response has no body', async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: false,
-      status: 500,
-      json: () => Promise.reject(new Error('no body')),
-    });
+  it('throws default message when data is null with no error', async () => {
+    apiJson.mockResolvedValue({ data: null, error: null, status: 500 });
 
-    await expect(parseRecipeFromText('text')).rejects.toThrow('AI parsing failed (500)');
+    await expect(parseRecipeFromText('text')).rejects.toThrow('AI parsing failed');
   });
 });
 
 describe('parseRecipeFromUrl', () => {
-  it('calls fetch with correct endpoint', async () => {
+  it('calls apiJson with correct endpoint', async () => {
     const result = await parseRecipeFromUrl('https://example.com/recipe');
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/functions/v1/parse-recipe-url'),
+    expect(apiJson).toHaveBeenCalledWith(
+      '/api/recipes/parse/url',
       expect.objectContaining({
+        method: 'POST',
         body: JSON.stringify({ url: 'https://example.com/recipe' }),
       }),
     );
@@ -119,13 +59,14 @@ describe('parseRecipeFromUrl', () => {
 });
 
 describe('parseRecipeFromPhoto', () => {
-  it('calls fetch with correct endpoint', async () => {
+  it('calls apiJson with correct endpoint and wraps single URL in array', async () => {
     const result = await parseRecipeFromPhoto('https://example.com/photo.jpg');
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/functions/v1/parse-recipe-photo'),
+    expect(apiJson).toHaveBeenCalledWith(
+      '/api/recipes/parse/photo',
       expect.objectContaining({
-        body: JSON.stringify({ image_url: 'https://example.com/photo.jpg' }),
+        method: 'POST',
+        body: JSON.stringify({ image_urls: ['https://example.com/photo.jpg'] }),
       }),
     );
     expect(result).toEqual(mockRecipeResult);
@@ -133,13 +74,14 @@ describe('parseRecipeFromPhoto', () => {
 });
 
 describe('parseRecipeFromPhotos', () => {
-  it('calls fetch with image_urls array', async () => {
+  it('calls apiJson with image_urls array', async () => {
     const urls = ['https://example.com/photo1.jpg', 'https://example.com/photo2.jpg'];
     const result = await parseRecipeFromPhotos(urls);
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/functions/v1/parse-recipe-photo'),
+    expect(apiJson).toHaveBeenCalledWith(
+      '/api/recipes/parse/photo',
       expect.objectContaining({
+        method: 'POST',
         body: JSON.stringify({ image_urls: urls }),
       }),
     );
@@ -149,8 +91,8 @@ describe('parseRecipeFromPhotos', () => {
   it('sends to same endpoint as single photo', async () => {
     await parseRecipeFromPhotos(['https://example.com/photo1.jpg']);
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/functions/v1/parse-recipe-photo'),
+    expect(apiJson).toHaveBeenCalledWith(
+      '/api/recipes/parse/photo',
       expect.anything(),
     );
   });

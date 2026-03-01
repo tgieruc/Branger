@@ -12,7 +12,7 @@ import {
 import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { supabase } from '@/lib/supabase';
+import { apiJson } from '@/lib/api';
 import { RecipeCard } from '@/components/RecipeCard';
 import { getCachedRecipeList, setCachedRecipeList } from '@/lib/cache';
 import { useColors } from '@/hooks/useColors';
@@ -56,30 +56,34 @@ export default function RecipesScreen() {
 
       const currentRecipes = recipesRef.current;
       const lastRecipe = reset ? null : currentRecipes[currentRecipes.length - 1];
-      const { data } = await supabase.rpc('search_recipes', {
-        p_query: debouncedQuery,
-        p_limit: PAGE_SIZE,
-        p_cursor_time: lastRecipe?.created_at ?? null,
-        p_cursor_id: lastRecipe?.id ?? null,
-      });
+      const params = new URLSearchParams();
+      if (debouncedQuery) params.set('q', debouncedQuery);
+      params.set('limit', String(PAGE_SIZE));
+      if (lastRecipe) {
+        params.set('cursor_time', lastRecipe.created_at);
+        params.set('cursor_id', lastRecipe.id);
+      }
+
+      const { data } = await apiJson<{ recipes: Recipe[]; has_more: boolean }>(
+        `/api/recipes/?${params.toString()}`,
+      );
 
       if (data) {
         if (reset) {
-          setRecipes(data);
-          recipesRef.current = data;
+          setRecipes(data.recipes);
+          recipesRef.current = data.recipes;
           if (debouncedQuery === '') {
-            setCachedRecipeList(data);
+            setCachedRecipeList(data.recipes);
           }
         } else {
           setRecipes((prev) => {
-            const next = [...prev, ...data];
+            const next = [...prev, ...data.recipes];
             recipesRef.current = next;
             return next;
           });
         }
-        const more = data.length === PAGE_SIZE;
-        setHasMore(more);
-        hasMoreRef.current = more;
+        setHasMore(data.has_more);
+        hasMoreRef.current = data.has_more;
       }
       setLoading(false);
       setLoadingMore(false);

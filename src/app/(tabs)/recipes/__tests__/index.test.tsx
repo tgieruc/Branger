@@ -1,32 +1,9 @@
 import React from 'react';
 import { render, waitFor } from '@testing-library/react-native';
 import RecipesScreen from '@/app/(tabs)/recipes/index';
-import { supabase } from '@/lib/supabase';
 import type { Recipe } from '@/lib/types';
 
-jest.mock('@/lib/supabase', () => {
-  const rpc = jest.fn().mockResolvedValue({ data: [], error: null });
-  return {
-    supabase: {
-      rpc,
-      from: jest.fn().mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        insert: jest.fn().mockReturnThis(),
-        update: jest.fn().mockReturnThis(),
-        delete: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: null, error: null }),
-      }),
-      auth: {
-        getSession: jest.fn().mockResolvedValue({ data: { session: null }, error: null }),
-        onAuthStateChange: jest.fn().mockReturnValue({
-          data: { subscription: { unsubscribe: jest.fn() } },
-        }),
-      },
-    },
-  };
-});
+jest.mock('@/lib/api');
 jest.mock('@/lib/cache', () => ({
   getCachedRecipeList: jest.fn().mockResolvedValue(null),
   setCachedRecipeList: jest.fn(),
@@ -80,7 +57,8 @@ const mockRecipes: Recipe[] = [
   },
 ];
 
-const rpcMock = supabase.rpc as jest.Mock;
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { apiJson } = require('@/lib/api');
 
 describe('RecipesScreen', () => {
   beforeEach(() => {
@@ -88,7 +66,7 @@ describe('RecipesScreen', () => {
   });
 
   it('renders loading state initially', () => {
-    rpcMock.mockReturnValue(new Promise(() => {}));
+    apiJson.mockReturnValue(new Promise(() => {}));
 
     const { UNSAFE_getByType } = render(<RecipesScreen />);
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -97,7 +75,7 @@ describe('RecipesScreen', () => {
   });
 
   it('renders recipe list after fetch', async () => {
-    rpcMock.mockResolvedValue({ data: mockRecipes, error: null });
+    apiJson.mockResolvedValue({ data: { recipes: mockRecipes, has_more: false }, error: null, status: 200 });
 
     const { getByText } = render(<RecipesScreen />);
 
@@ -108,7 +86,7 @@ describe('RecipesScreen', () => {
   });
 
   it('shows empty state when no recipes', async () => {
-    rpcMock.mockResolvedValue({ data: [], error: null });
+    apiJson.mockResolvedValue({ data: { recipes: [], has_more: false }, error: null, status: 200 });
 
     const { getByText } = render(<RecipesScreen />);
 
@@ -117,16 +95,15 @@ describe('RecipesScreen', () => {
     });
   });
 
-  it('calls supabase rpc to search recipes on mount', async () => {
-    rpcMock.mockResolvedValue({ data: mockRecipes, error: null });
+  it('calls apiJson to fetch recipes on mount', async () => {
+    apiJson.mockResolvedValue({ data: { recipes: mockRecipes, has_more: false }, error: null, status: 200 });
 
     render(<RecipesScreen />);
 
     await waitFor(() => {
-      expect(rpcMock).toHaveBeenCalledWith('search_recipes', expect.objectContaining({
-        p_query: '',
-        p_limit: 20,
-      }));
+      expect(apiJson).toHaveBeenCalledWith(
+        expect.stringContaining('/api/recipes/'),
+      );
     });
   });
 });

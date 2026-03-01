@@ -8,7 +8,7 @@ import { useRouter, useNavigation } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
-import { supabase } from '@/lib/supabase';
+import { apiJson, apiCall, getServerUrl } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useColors } from '@/hooks/useColors';
 import { parseRecipeFromText, parseRecipeFromUrl, parseRecipeFromPhotos } from '@/lib/ai';
@@ -142,6 +142,7 @@ export default function CreateRecipeScreen() {
     if (stagedPhotos.length === 0 || !user) return;
     setAiLoading(true);
     try {
+      const serverUrl = await getServerUrl();
       const publicUrls: string[] = [];
       for (const photo of stagedPhotos) {
         const formData = new FormData();
@@ -151,17 +152,10 @@ export default function CreateRecipeScreen() {
           type: 'image/jpeg',
         } as any);
 
-        const { error: uploadError } = await supabase.storage
-          .from('recipe-photos')
-          .upload(photo.fileName, formData, { contentType: 'multipart/form-data' });
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('recipe-photos')
-          .getPublicUrl(photo.fileName);
-
-        publicUrls.push(publicUrl);
+        const resp = await apiCall('/api/photos/upload', { method: 'POST', body: formData });
+        if (!resp.ok) throw new Error('Photo upload failed');
+        const uploadData = await resp.json();
+        publicUrls.push(`${serverUrl}${uploadData.url}`);
       }
 
       const parsed = await parseRecipeFromPhotos(publicUrls);
@@ -224,45 +218,26 @@ export default function CreateRecipeScreen() {
     const validSteps = steps.filter((s) => s.instruction.trim());
     setSaving(true);
 
-    const { data: recipe, error } = await supabase
-      .from('recipes')
-      .insert({
+    const { error } = await apiJson('/api/recipes/', {
+      method: 'POST',
+      body: JSON.stringify({
         title: title.trim(),
-        user_id: user.id,
+        ingredients: validIngs.map((ing, i) => ({
+          name: ing.name.trim(),
+          description: ing.description.trim(),
+          position: i,
+        })),
+        steps: validSteps.map((s, i) => ({
+          step_number: i + 1,
+          instruction: s.instruction.trim(),
+        })),
         source_type: sourceTypeMap[sourceMode],
         source_url: sourceMode === 'url' ? aiUrl : null,
-      })
-      .select()
-      .single();
+      }),
+    });
 
-    if (error || !recipe) {
-      Alert.alert('Error', error?.message ?? 'Failed'); setSaving(false); return;
-    }
-
-    if (validIngs.length > 0) {
-      const { error: ingError } = await supabase.from('recipe_ingredients').insert(
-        validIngs.map((ing, i) => ({
-          recipe_id: recipe.id, name: ing.name.trim(),
-          description: ing.description.trim(), position: i,
-        }))
-      );
-      if (ingError) {
-        Alert.alert('Warning', 'Recipe saved but some ingredients may be missing.');
-        setSaving(false);
-        router.back();
-        return;
-      }
-    }
-
-    if (validSteps.length > 0) {
-      const { error: stepError } = await supabase.from('recipe_steps').insert(
-        validSteps.map((s, i) => ({
-          recipe_id: recipe.id, step_number: i + 1, instruction: s.instruction.trim(),
-        }))
-      );
-      if (stepError) {
-        Alert.alert('Warning', 'Recipe saved but some steps may be missing.');
-      }
+    if (error) {
+      Alert.alert('Error', error ?? 'Failed'); setSaving(false); return;
     }
 
     setSaving(false);

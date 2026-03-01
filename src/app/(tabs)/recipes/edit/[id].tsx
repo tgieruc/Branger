@@ -8,7 +8,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
-import { supabase } from '@/lib/supabase';
+import { apiJson, apiCall, getServerUrl } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useColors } from '@/hooks/useColors';
 
@@ -30,29 +30,30 @@ export default function EditRecipeScreen() {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
   const fetchRecipe = useCallback(async () => {
-    const [recipeRes, ingredientsRes, stepsRes] = await Promise.all([
-      supabase.from('recipes').select('*').eq('id', id!).single(),
-      supabase.from('recipe_ingredients').select('*').eq('recipe_id', id!).order('position'),
-      supabase.from('recipe_steps').select('*').eq('recipe_id', id!).order('step_number'),
-    ]);
+    const { data } = await apiJson<{
+      title: string;
+      photo_url: string | null;
+      ingredients: { name: string; description: string | null }[];
+      steps: { instruction: string }[];
+    }>(`/api/recipes/${id}`);
 
-    if (!recipeRes.data) {
+    if (!data) {
       Alert.alert('Error', 'Recipe not found');
       router.back();
       return;
     }
 
-    setTitle(recipeRes.data.title);
-    setPhotoUrl(recipeRes.data.photo_url);
+    setTitle(data.title);
+    setPhotoUrl(data.photo_url);
 
-    const ings = (ingredientsRes.data ?? []).map((i) => ({
+    const ings = (data.ingredients ?? []).map((i) => ({
       id: Crypto.randomUUID(),
       name: i.name,
       description: i.description ?? '',
     }));
     setIngredients(ings.length > 0 ? ings : [{ id: Crypto.randomUUID(), name: '', description: '' }]);
 
-    const stps = (stepsRes.data ?? []).map((s) => ({
+    const stps = (data.steps ?? []).map((s) => ({
       id: Crypto.randomUUID(),
       instruction: s.instruction,
     }));
@@ -72,26 +73,20 @@ export default function EditRecipeScreen() {
     try {
       const asset = result.assets[0];
       const ext = asset.uri.split('.').pop() || 'jpg';
-      const fileName = `${user.id}/${Date.now()}.${ext}`;
+      const fileName = `${Date.now()}.${ext}`;
 
       const formData = new FormData();
       formData.append('file', {
         uri: asset.uri,
-        name: fileName.split('/').pop(),
+        name: fileName,
         type: asset.mimeType || 'image/jpeg',
       } as any);
 
-      const { error: uploadError } = await supabase.storage
-        .from('recipe-photos')
-        .upload(fileName, formData, { contentType: 'multipart/form-data' });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('recipe-photos')
-        .getPublicUrl(fileName);
-
-      setPhotoUrl(publicUrl);
+      const resp = await apiCall('/api/photos/upload', { method: 'POST', body: formData });
+      if (!resp.ok) throw new Error('Photo upload failed');
+      const uploadData = await resp.json();
+      const serverUrl = await getServerUrl();
+      setPhotoUrl(`${serverUrl}${uploadData.url}`);
     } catch (e: any) {
       Alert.alert('Error', e.message);
     }
@@ -150,70 +145,27 @@ export default function EditRecipeScreen() {
     const validSteps = steps.filter((s) => s.instruction.trim());
     setSaving(true);
 
-    // Update recipe row
-    const { error: recipeError } = await supabase
-      .from('recipes')
-      .update({ title: title.trim(), photo_url: photoUrl })
-      .eq('id', id!);
-
-    if (recipeError) {
-      Alert.alert('Error', recipeError.message);
-      setSaving(false);
-      return;
-    }
-
-    // Delete existing ingredients, then insert new
-    const { error: delIngError } = await supabase
-      .from('recipe_ingredients')
-      .delete()
-      .eq('recipe_id', id!);
-
-    if (delIngError) {
-      Alert.alert('Error', 'Failed to update ingredients.');
-      setSaving(false);
-      return;
-    }
-
-    if (validIngs.length > 0) {
-      const { error: ingError } = await supabase.from('recipe_ingredients').insert(
-        validIngs.map((ing, i) => ({
-          recipe_id: id!,
+    const { error } = await apiJson(`/api/recipes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        title: title.trim(),
+        photo_url: photoUrl,
+        ingredients: validIngs.map((ing, i) => ({
           name: ing.name.trim(),
           description: ing.description.trim(),
           position: i,
-        }))
-      );
-      if (ingError) {
-        Alert.alert('Warning', 'Recipe saved but some ingredients may be missing.');
-        setSaving(false);
-        router.back();
-        return;
-      }
-    }
-
-    // Delete existing steps, then insert new
-    const { error: delStepError } = await supabase
-      .from('recipe_steps')
-      .delete()
-      .eq('recipe_id', id!);
-
-    if (delStepError) {
-      Alert.alert('Error', 'Failed to update steps.');
-      setSaving(false);
-      return;
-    }
-
-    if (validSteps.length > 0) {
-      const { error: stepError } = await supabase.from('recipe_steps').insert(
-        validSteps.map((s, i) => ({
-          recipe_id: id!,
+        })),
+        steps: validSteps.map((s, i) => ({
           step_number: i + 1,
           instruction: s.instruction.trim(),
-        }))
-      );
-      if (stepError) {
-        Alert.alert('Warning', 'Recipe saved but some steps may be missing.');
-      }
+        })),
+      }),
+    });
+
+    if (error) {
+      Alert.alert('Error', error);
+      setSaving(false);
+      return;
     }
 
     setSaving(false);
