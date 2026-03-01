@@ -2,7 +2,7 @@ import pytest
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from app.database import Base, get_db
-from app.main import app
+from app.main import app as fastapi_app
 import app.models  # noqa: F401  -- register models with Base before create_all
 
 @pytest.fixture
@@ -19,8 +19,8 @@ async def db_session():
 async def client(db_session):
     async def override_get_db():
         yield db_session
-    app.dependency_overrides[get_db] = override_get_db
-    transport = ASGITransport(app=app)
+    fastapi_app.dependency_overrides[get_db] = override_get_db
+    transport = ASGITransport(app=fastapi_app)
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
-    app.dependency_overrides.clear()
+    fastapi_app.dependency_overrides.clear()
