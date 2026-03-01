@@ -74,7 +74,11 @@ export default function RecipeDetailScreen() {
 
   const confirmDelete = async () => {
     setDeleteConfirmVisible(false);
-    await apiCall(`/api/recipes/${id}`, { method: 'DELETE' });
+    const resp = await apiCall(`/api/recipes/${id}`, { method: 'DELETE' });
+    if (!resp.ok) {
+      Alert.alert('Error', 'Failed to delete recipe.');
+      return;
+    }
     router.back();
   };
 
@@ -83,7 +87,7 @@ export default function RecipeDetailScreen() {
     let shareUrl: string;
     if (recipe.share_token) {
       const serverUrl = await getServerUrl();
-      shareUrl = `${serverUrl}/share/${recipe.share_token}`;
+      shareUrl = `${serverUrl}/api/share/${recipe.share_token}`;
     } else {
       const { data } = await apiJson<{ share_token: string; share_url: string }>(
         `/api/recipes/${id}/share`,
@@ -141,13 +145,13 @@ export default function RecipeDetailScreen() {
 
     const { error } = await apiJson(`/api/lists/${list.id}/items`, {
       method: 'POST',
-      body: JSON.stringify({
-        items: recipe.ingredients.map((ing) => ({
+      body: JSON.stringify(
+        recipe.ingredients.map((ing) => ({
           name: ing.name,
           description: ing.description || null,
           recipe_id: recipe.id,
-        })),
-      }),
+        }))
+      ),
     });
 
     setAddingToList(false);

@@ -8,7 +8,7 @@ import { useRouter, useNavigation } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
-import { apiJson, apiCall, getServerUrl } from '@/lib/api';
+import { apiJson, apiCall } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useColors } from '@/hooks/useColors';
 import { parseRecipeFromText, parseRecipeFromUrl, parseRecipeFromPhotos } from '@/lib/ai';
@@ -142,7 +142,6 @@ export default function CreateRecipeScreen() {
     if (stagedPhotos.length === 0 || !user) return;
     setAiLoading(true);
     try {
-      const serverUrl = await getServerUrl();
       const publicUrls: string[] = [];
       for (const photo of stagedPhotos) {
         const formData = new FormData();
@@ -155,7 +154,7 @@ export default function CreateRecipeScreen() {
         const resp = await apiCall('/api/photos/upload', { method: 'POST', body: formData });
         if (!resp.ok) throw new Error('Photo upload failed');
         const uploadData = await resp.json();
-        publicUrls.push(`${serverUrl}${uploadData.url}`);
+        publicUrls.push(uploadData.url);
       }
 
       const parsed = await parseRecipeFromPhotos(publicUrls);
