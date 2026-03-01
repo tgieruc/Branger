@@ -1,0 +1,14 @@
+services:
+  branger:
+    build: ./server
+    ports:
+      - "8080:8080"
+    volumes:
+      - branger-data:/data
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-change-me}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
+    restart: unless-stopped
+
+volumes:
+  branger-data:
