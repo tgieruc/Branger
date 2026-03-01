@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/auth';
 import { useColors } from '@/hooks/useColors';
 
 export default function JoinListScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, token } = useLocalSearchParams<{ id: string; token: string }>();
   const router = useRouter();
   const { session, loading: authLoading } = useAuth();
   const colors = useColors();
@@ -16,15 +16,21 @@ export default function JoinListScreen() {
   useEffect(() => {
     if (authLoading) return;
 
+    if (!token) {
+      Alert.alert('Error', 'Invalid invite link');
+      router.replace('/(tabs)/lists');
+      return;
+    }
+
     if (!session) {
-      AsyncStorage.setItem('pendingListJoin', id).then(() => {
+      AsyncStorage.setItem('pendingListJoin', `${id}:${token}`).then(() => {
         router.replace('/login');
       });
       return;
     }
 
     setJoining(true);
-    supabase.rpc('join_list', { p_list_id: id }).then(({ error }) => {
+    supabase.rpc('join_list', { p_list_id: id, p_invite_token: token }).then(({ error }) => {
       setJoining(false);
       if (error) {
         Alert.alert('Error', error.message || 'Could not join list');
@@ -33,7 +39,7 @@ export default function JoinListScreen() {
       }
       router.replace(`/(tabs)/lists/${id}` as any);
     });
-  }, [session, authLoading, id, router]);
+  }, [session, authLoading, id, token, router]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

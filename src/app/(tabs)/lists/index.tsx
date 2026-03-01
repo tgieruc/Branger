@@ -116,11 +116,14 @@ export default function ListsScreen() {
 
   const confirmDeleteList = async () => {
     if (!deleteListId || !user) return;
-    await supabase
+    const { error } = await supabase
       .from('list_members')
       .delete()
       .eq('list_id', deleteListId)
       .eq('user_id', user.id);
+    if (error) {
+      Alert.alert('Error', 'Failed to leave list. Please try again.');
+    }
     setDeleteListId(null);
     fetchLists();
   };

@@ -20,7 +20,7 @@ export default function ForgotPasswordScreen() {
     setLoading(true);
     const redirectTo = Platform.OS === 'web'
       ? `${window.location.origin}/reset-password`
-      : 'https://jeboglcuuutpwymxcejn.supabase.co/functions/v1/auth-callback';
+      : `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/auth-callback`;
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo,
     });

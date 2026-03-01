@@ -23,6 +23,7 @@ export function EmptyState({ illustration, title, subtitle, actionLabel, onActio
         <TouchableOpacity
           style={[styles.button, { backgroundColor: colors.primary }]}
           onPress={onAction}
+          accessibilityLabel={actionLabel}
           accessibilityRole="button"
         >
           <Text style={[styles.buttonText, { color: colors.buttonText }]}>{actionLabel}</Text>

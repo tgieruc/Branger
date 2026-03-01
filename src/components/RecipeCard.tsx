@@ -10,7 +10,7 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
 
   return (
     <Link href={`/(tabs)/recipes/${recipe.id}`} asChild>
-      <TouchableOpacity style={StyleSheet.flatten([styles.card, { backgroundColor: colors.card }])}>
+      <TouchableOpacity style={StyleSheet.flatten([styles.card, { backgroundColor: colors.card }])} accessibilityLabel={`View recipe: ${recipe.title}`} accessibilityRole="button">
         {recipe.photo_url ? (
           <Image source={{ uri: recipe.photo_url }} style={styles.image} />
         ) : (

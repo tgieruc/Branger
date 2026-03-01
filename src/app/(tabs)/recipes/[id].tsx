@@ -84,7 +84,11 @@ export default function RecipeDetailScreen() {
 
   const confirmDelete = async () => {
     setDeleteConfirmVisible(false);
-    await supabase.from('recipes').delete().eq('id', id!);
+    const { error } = await supabase.from('recipes').delete().eq('id', id!);
+    if (error) {
+      Alert.alert('Error', 'Failed to delete recipe. Please try again.');
+      return;
+    }
     router.back();
   };
 
@@ -93,10 +97,14 @@ export default function RecipeDetailScreen() {
     let token = recipe.share_token;
     if (!token) {
       token = Crypto.randomUUID();
-      await supabase.from('recipes').update({ share_token: token }).eq('id', id!);
+      const { error } = await supabase.from('recipes').update({ share_token: token }).eq('id', id!);
+      if (error) {
+        Alert.alert('Error', 'Failed to generate share link. Please try again.');
+        return;
+      }
       setRecipe({ ...recipe, share_token: token });
     }
-    const shareUrl = `branger://share/${token}`;
+    const shareUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/share-redirect/recipe/${token}`;
     try {
       await Share.share({
         message: Platform.OS === 'ios'

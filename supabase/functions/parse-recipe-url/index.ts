@@ -2,10 +2,12 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import * as jose from "jsr:@panva/jose@6";
 
 const MISTRAL_API_KEY = Deno.env.get("MISTRAL_API_KEY")!;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-const SUPABASE_JWT_ISSUER = Deno.env.get("SUPABASE_URL")! + "/auth/v1";
+const SUPABASE_JWT_ISSUER = SUPABASE_URL + "/auth/v1";
 const SUPABASE_JWT_KEYS = jose.createRemoteJWKSet(
-  new URL(Deno.env.get("SUPABASE_URL")! + "/auth/v1/.well-known/jwks.json"),
+  new URL(SUPABASE_URL + "/auth/v1/.well-known/jwks.json"),
 );
 
 const SYSTEM_PROMPT = `You are a recipe parser. Given the text content scraped from a recipe webpage, extract it into a structured JSON format.
@@ -145,6 +147,26 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Rate limit check
+    const rateLimitRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/check_ai_rate_limit`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": authHeader,
+        "apikey": SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({}),
+    });
+    if (rateLimitRes.ok) {
+      const allowed = await rateLimitRes.json();
+      if (!allowed) {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
+          status: 429,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+    }
+
     const { url } = await req.json();
 
     if (!url || typeof url !== "string") {
@@ -194,7 +216,7 @@ Deno.serve(async (req) => {
     const html = await pageResponse.text();
     const pageText = extractTextFromHtml(html);
 
-    // Send to OpenAI with timeout
+    // Send to Mistral with timeout
     const aiController = new AbortController();
     const aiTimeout = setTimeout(() => aiController.abort(), 30000);
     const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
