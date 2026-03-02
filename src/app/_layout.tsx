@@ -18,15 +18,18 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     if (loading) return;
 
     const inAuthGroup = segments[0] === '(tabs)';
-    const inPublicRoute = segments[0] === 'share';
+    const inPublicRoute = segments[0] === 'share' || segments[0] === 'oauth';
     const inListJoin = segments[0] === 'list';
     const inResetFlow = segments[0] === 'reset-password' || segments[0] === 'forgot-password';
 
     if (!session && inAuthGroup) {
       router.replace('/login');
     } else if (session && !inAuthGroup && !inPublicRoute && !inListJoin && !inResetFlow) {
-      AsyncStorage.getItem('pendingListJoin').then((pendingId) => {
-        if (pendingId) {
+      AsyncStorage.multiGet(['oauth_return_url', 'pendingListJoin']).then(([[, oauthUrl], [, pendingId]]) => {
+        if (oauthUrl) {
+          AsyncStorage.removeItem('oauth_return_url');
+          router.replace(oauthUrl as any);
+        } else if (pendingId) {
           AsyncStorage.removeItem('pendingListJoin');
           router.replace(`/list/${pendingId}` as any);
         } else {

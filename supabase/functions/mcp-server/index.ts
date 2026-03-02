@@ -1,10 +1,16 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import * as jose from "jsr:@panva/jose@6";
 
 // --- Environment ---
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+const SUPABASE_JWT_ISSUER = SUPABASE_URL + "/auth/v1";
+const SUPABASE_JWT_KEYS = jose.createRemoteJWKSet(
+  new URL(SUPABASE_URL + "/auth/v1/.well-known/jwks.json"),
+);
 
 // Service role client — bypasses RLS, all queries filter by user_id manually
 const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -34,6 +40,21 @@ async function validateToken(
   });
   if (error || !data || data.length === 0) return null;
   return { userId: data[0].user_id, tokenId: data[0].token_id };
+}
+
+async function validateJwt(
+  bearerToken: string
+): Promise<{ userId: string } | null> {
+  try {
+    const { payload } = await jose.jwtVerify(bearerToken, SUPABASE_JWT_KEYS, {
+      issuer: SUPABASE_JWT_ISSUER,
+      audience: "authenticated",
+    });
+    if (!payload.sub) return null;
+    return { userId: payload.sub };
+  } catch {
+    return null;
+  }
 }
 
 // --- Access helpers ---
@@ -719,28 +740,43 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // --- Auth: validate API token ---
+    // --- Auth: API token (brg_) or Supabase JWT ---
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer brg_")) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
-        JSON.stringify({ error: "Missing or invalid API token. Expected: Bearer brg_..." }),
+        JSON.stringify({ error: "Missing Authorization header" }),
         { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
     const bearerToken = authHeader.replace("Bearer ", "");
 
-    const tokenResult = await validateToken(bearerToken);
-    if (!tokenResult) {
-      return new Response(
-        JSON.stringify({ error: "Invalid or expired API token" }),
-        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
+    let userId: string;
 
-    // Update last_used_at (fire-and-forget)
-    supabaseAdmin
-      .rpc("update_token_last_used", { p_token_id: tokenResult.tokenId })
-      .then(null, (err: unknown) => console.error("Failed to update token last_used_at:", err));
+    if (bearerToken.startsWith("brg_")) {
+      // API token path
+      const tokenResult = await validateToken(bearerToken);
+      if (!tokenResult) {
+        return new Response(
+          JSON.stringify({ error: "Invalid or expired API token" }),
+          { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      // Update last_used_at (fire-and-forget)
+      supabaseAdmin
+        .rpc("update_token_last_used", { p_token_id: tokenResult.tokenId })
+        .then(null, (err: unknown) => console.error("Failed to update token last_used_at:", err));
+      userId = tokenResult.userId;
+    } else {
+      // Supabase JWT path (OAuth)
+      const jwtResult = await validateJwt(bearerToken);
+      if (!jwtResult) {
+        return new Response(
+          JSON.stringify({ error: "Invalid or expired token" }),
+          { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      userId = jwtResult.userId;
+    }
 
     // --- Parse JSON-RPC request ---
     let body;
@@ -781,7 +817,7 @@ Deno.serve(async (req) => {
         const toolResponse = await dispatchTool(
           toolName,
           toolArgs,
-          tokenResult.userId
+          userId
         );
         result = jsonRpcResponse(id, toolResponse);
         break;
