@@ -769,7 +769,7 @@ Deno.serve(async (req) => {
         break;
 
       case "notifications/initialized":
-        return new Response("", { status: 204, headers: corsHeaders });
+        return new Response(null, { status: 204, headers: corsHeaders });
 
       case "tools/list":
         result = jsonRpcResponse(id, { tools: TOOLS });

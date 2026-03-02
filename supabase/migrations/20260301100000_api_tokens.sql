@@ -45,7 +45,7 @@ CREATE OR REPLACE FUNCTION public.create_api_token(p_name text DEFAULT 'API Toke
 RETURNS TABLE(id uuid, token text)
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   v_user_id uuid := auth.uid();
