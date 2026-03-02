@@ -1,14 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { SignJWT } from "jsr:@panva/jose@6";
 
 // --- Environment ---
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const JWT_SECRET = Deno.env.get("SUPABASE_JWT_SECRET")!;
 
-// Service role client for token validation
+// Service role client — bypasses RLS, all queries filter by user_id manually
 const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 const corsHeaders = {
@@ -38,24 +36,39 @@ async function validateToken(
   return { userId: data[0].user_id, tokenId: data[0].token_id };
 }
 
-async function mintUserJwt(userId: string): Promise<string> {
-  const secret = new TextEncoder().encode(JWT_SECRET);
-  return await new SignJWT({
-    sub: userId,
-    role: "authenticated",
-    iss: "supabase",
-    aud: "authenticated",
-  })
-    .setProtectedHeader({ alg: "HS256", typ: "JWT" })
-    .setIssuedAt()
-    .setExpirationTime("5m")
-    .sign(secret);
+// --- Access helpers ---
+
+async function verifyListMembership(userId: string, listId: string): Promise<boolean> {
+  const { data } = await supabaseAdmin
+    .from("list_members")
+    .select("list_id")
+    .eq("list_id", listId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return !!data;
 }
 
-function createUserClient(jwt: string) {
-  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: `Bearer ${jwt}` } },
-  });
+async function verifyItemsAccess(
+  userId: string,
+  itemIds: string[]
+): Promise<{ ok: boolean; error?: string }> {
+  const { data: items } = await supabaseAdmin
+    .from("list_items")
+    .select("list_id")
+    .in("id", itemIds);
+  if (!items || items.length === 0) return { ok: false, error: "Items not found" };
+
+  const listIds = [...new Set(items.map((i) => i.list_id))];
+  const { data: memberships } = await supabaseAdmin
+    .from("list_members")
+    .select("list_id")
+    .eq("user_id", userId)
+    .in("list_id", listIds);
+
+  if (!memberships || memberships.length !== listIds.length) {
+    return { ok: false, error: "Not a member of the list containing these items" };
+  }
+  return { ok: true };
 }
 
 // --- JSON-RPC helpers ---
@@ -298,39 +311,41 @@ const TOOLS = [
 
 // --- Tool Handlers ---
 
-type SupabaseClient = ReturnType<typeof createClient>;
-
 async function handleSearchRecipes(
-  supabase: SupabaseClient,
+  userId: string,
   args: { query?: string; limit?: number }
 ) {
   const limit = Math.min(args.limit ?? 20, 50);
-  if (args.query) {
-    const { data, error } = await supabase.rpc("search_recipes", {
-      p_query: args.query,
-      p_limit: limit,
-    });
-    if (error) return toolResult(`Error: ${error.message}`, true);
-    return toolResult(data);
-  }
-  const { data, error } = await supabase
+  let query = supabaseAdmin
     .from("recipes")
     .select("id, title, source_type, created_at, updated_at")
+    .eq("user_id", userId)
     .order("updated_at", { ascending: false })
     .limit(limit);
+
+  if (args.query) {
+    query = query.ilike("title", `%${args.query}%`);
+  }
+
+  const { data, error } = await query;
   if (error) return toolResult(`Error: ${error.message}`, true);
   return toolResult(data);
 }
 
-async function handleGetRecipe(supabase: SupabaseClient, args: { recipe_id: string }) {
+async function handleGetRecipe(userId: string, args: { recipe_id: string }) {
   const [recipeRes, ingredientsRes, stepsRes] = await Promise.all([
-    supabase.from("recipes").select("*").eq("id", args.recipe_id).single(),
-    supabase
+    supabaseAdmin
+      .from("recipes")
+      .select("*")
+      .eq("id", args.recipe_id)
+      .eq("user_id", userId)
+      .single(),
+    supabaseAdmin
       .from("recipe_ingredients")
       .select("*")
       .eq("recipe_id", args.recipe_id)
       .order("position"),
-    supabase
+    supabaseAdmin
       .from("recipe_steps")
       .select("*")
       .eq("recipe_id", args.recipe_id)
@@ -345,7 +360,6 @@ async function handleGetRecipe(supabase: SupabaseClient, args: { recipe_id: stri
 }
 
 async function handleCreateRecipe(
-  supabase: SupabaseClient,
   userId: string,
   args: {
     title: string;
@@ -353,7 +367,7 @@ async function handleCreateRecipe(
     steps: string[];
   }
 ) {
-  const { data: recipe, error } = await supabase
+  const { data: recipe, error } = await supabaseAdmin
     .from("recipes")
     .insert({ title: args.title, user_id: userId, source_type: "manual" })
     .select()
@@ -361,7 +375,7 @@ async function handleCreateRecipe(
   if (error) return toolResult(`Error creating recipe: ${error.message}`, true);
 
   if (args.ingredients.length > 0) {
-    await supabase.from("recipe_ingredients").insert(
+    await supabaseAdmin.from("recipe_ingredients").insert(
       args.ingredients.map((ing, i) => ({
         recipe_id: recipe.id,
         name: ing.name,
@@ -372,7 +386,7 @@ async function handleCreateRecipe(
   }
 
   if (args.steps.length > 0) {
-    await supabase.from("recipe_steps").insert(
+    await supabaseAdmin.from("recipe_steps").insert(
       args.steps.map((instruction, i) => ({
         recipe_id: recipe.id,
         step_number: i + 1,
@@ -385,7 +399,7 @@ async function handleCreateRecipe(
 }
 
 async function handleUpdateRecipe(
-  supabase: SupabaseClient,
+  userId: string,
   args: {
     recipe_id: string;
     title?: string;
@@ -393,8 +407,17 @@ async function handleUpdateRecipe(
     steps?: string[];
   }
 ) {
+  // Verify ownership
+  const { data: recipe } = await supabaseAdmin
+    .from("recipes")
+    .select("id")
+    .eq("id", args.recipe_id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!recipe) return toolResult("Recipe not found or not owned by you", true);
+
   if (args.title) {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from("recipes")
       .update({ title: args.title })
       .eq("id", args.recipe_id);
@@ -402,9 +425,9 @@ async function handleUpdateRecipe(
   }
 
   if (args.ingredients) {
-    await supabase.from("recipe_ingredients").delete().eq("recipe_id", args.recipe_id);
+    await supabaseAdmin.from("recipe_ingredients").delete().eq("recipe_id", args.recipe_id);
     if (args.ingredients.length > 0) {
-      await supabase.from("recipe_ingredients").insert(
+      await supabaseAdmin.from("recipe_ingredients").insert(
         args.ingredients.map((ing, i) => ({
           recipe_id: args.recipe_id,
           name: ing.name,
@@ -416,9 +439,9 @@ async function handleUpdateRecipe(
   }
 
   if (args.steps) {
-    await supabase.from("recipe_steps").delete().eq("recipe_id", args.recipe_id);
+    await supabaseAdmin.from("recipe_steps").delete().eq("recipe_id", args.recipe_id);
     if (args.steps.length > 0) {
-      await supabase.from("recipe_steps").insert(
+      await supabaseAdmin.from("recipe_steps").insert(
         args.steps.map((instruction, i) => ({
           recipe_id: args.recipe_id,
           step_number: i + 1,
@@ -431,21 +454,22 @@ async function handleUpdateRecipe(
   return toolResult({ message: "Recipe updated", recipe_id: args.recipe_id });
 }
 
-async function handleDeleteRecipe(supabase: SupabaseClient, args: { recipe_id: string }) {
-  const { error } = await supabase.from("recipes").delete().eq("id", args.recipe_id);
+async function handleDeleteRecipe(userId: string, args: { recipe_id: string }) {
+  const { error } = await supabaseAdmin
+    .from("recipes")
+    .delete()
+    .eq("id", args.recipe_id)
+    .eq("user_id", userId);
   if (error) return toolResult(`Error: ${error.message}`, true);
   return toolResult({ message: "Recipe deleted" });
 }
 
-async function handleImportFromUrl(
-  userJwt: string,
-  args: { url: string }
-) {
+async function handleImportFromUrl(args: { url: string }) {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/parse-recipe-url`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${userJwt}`,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
       apikey: SUPABASE_ANON_KEY,
     },
     body: JSON.stringify({ url: args.url }),
@@ -461,15 +485,12 @@ async function handleImportFromUrl(
   });
 }
 
-async function handleImportFromText(
-  userJwt: string,
-  args: { text: string }
-) {
+async function handleImportFromText(args: { text: string }) {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/parse-recipe-text`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${userJwt}`,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
       apikey: SUPABASE_ANON_KEY,
     },
     body: JSON.stringify({ text: args.text }),
@@ -485,8 +506,8 @@ async function handleImportFromText(
   });
 }
 
-async function handleListShoppingLists(supabase: SupabaseClient, userId: string) {
-  const { data: memberships, error: memErr } = await supabase
+async function handleListShoppingLists(userId: string) {
+  const { data: memberships, error: memErr } = await supabaseAdmin
     .from("list_members")
     .select("list_id")
     .eq("user_id", userId);
@@ -494,14 +515,14 @@ async function handleListShoppingLists(supabase: SupabaseClient, userId: string)
   if (!memberships || memberships.length === 0) return toolResult([]);
 
   const listIds = memberships.map((m) => m.list_id);
-  const { data: lists, error: listErr } = await supabase
+  const { data: lists, error: listErr } = await supabaseAdmin
     .from("shopping_lists")
     .select("id, name, created_at, updated_at")
     .in("id", listIds)
     .order("updated_at", { ascending: false });
   if (listErr) return toolResult(`Error: ${listErr.message}`, true);
 
-  const { data: items, error: itemsErr } = await supabase
+  const { data: items, error: itemsErr } = await supabaseAdmin
     .from("list_items")
     .select("list_id, checked")
     .in("list_id", listIds);
@@ -523,10 +544,14 @@ async function handleListShoppingLists(supabase: SupabaseClient, userId: string)
   );
 }
 
-async function handleGetShoppingList(supabase: SupabaseClient, args: { list_id: string }) {
+async function handleGetShoppingList(userId: string, args: { list_id: string }) {
+  if (!(await verifyListMembership(userId, args.list_id))) {
+    return toolResult("Not a member of this list", true);
+  }
+
   const [listRes, itemsRes] = await Promise.all([
-    supabase.from("shopping_lists").select("*").eq("id", args.list_id).single(),
-    supabase
+    supabaseAdmin.from("shopping_lists").select("*").eq("id", args.list_id).single(),
+    supabaseAdmin
       .from("list_items")
       .select("id, name, description, checked, recipe_id, position")
       .eq("list_id", args.list_id)
@@ -536,19 +561,25 @@ async function handleGetShoppingList(supabase: SupabaseClient, args: { list_id: 
   return toolResult({ ...listRes.data, items: itemsRes.data ?? [] });
 }
 
-async function handleCreateShoppingList(supabase: SupabaseClient, args: { name: string }) {
-  const { data, error } = await supabase.rpc("create_list_with_member", {
-    list_name: args.name,
+async function handleCreateShoppingList(userId: string, args: { name: string }) {
+  const { data, error } = await supabaseAdmin.rpc("mcp_create_list_with_member", {
+    p_user_id: userId,
+    p_list_name: args.name,
   });
   if (error) return toolResult(`Error: ${error.message}`, true);
   return toolResult({ message: "Shopping list created", list_id: data });
 }
 
 async function handleAddItemsToList(
-  supabase: SupabaseClient,
+  userId: string,
   args: { list_id: string; items: { name: string; description?: string }[] }
 ) {
-  const { error } = await supabase.rpc("add_items_to_list", {
+  if (args.items.length > 200) {
+    return toolResult("Cannot add more than 200 items at once", true);
+  }
+
+  const { error } = await supabaseAdmin.rpc("mcp_add_items_to_list", {
+    p_user_id: userId,
     p_list_id: args.list_id,
     p_items: args.items.map((i) => ({
       name: i.name,
@@ -560,10 +591,19 @@ async function handleAddItemsToList(
 }
 
 async function handleAddRecipeIngredientsToList(
-  supabase: SupabaseClient,
+  userId: string,
   args: { list_id: string; recipe_id: string }
 ) {
-  const { data: ingredients, error: ingErr } = await supabase
+  // Verify recipe ownership
+  const { data: recipe } = await supabaseAdmin
+    .from("recipes")
+    .select("id")
+    .eq("id", args.recipe_id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!recipe) return toolResult("Recipe not found or not owned by you", true);
+
+  const { data: ingredients, error: ingErr } = await supabaseAdmin
     .from("recipe_ingredients")
     .select("name, description")
     .eq("recipe_id", args.recipe_id)
@@ -572,7 +612,8 @@ async function handleAddRecipeIngredientsToList(
   if (!ingredients || ingredients.length === 0)
     return toolResult("No ingredients found in recipe", true);
 
-  const { error } = await supabase.rpc("add_items_to_list", {
+  const { error } = await supabaseAdmin.rpc("mcp_add_items_to_list", {
+    p_user_id: userId,
     p_list_id: args.list_id,
     p_items: ingredients.map((i) => ({
       name: i.name,
@@ -585,10 +626,13 @@ async function handleAddRecipeIngredientsToList(
 }
 
 async function handleCheckItems(
-  supabase: SupabaseClient,
+  userId: string,
   args: { item_ids: string[]; checked: boolean }
 ) {
-  const { error } = await supabase
+  const access = await verifyItemsAccess(userId, args.item_ids);
+  if (!access.ok) return toolResult(access.error!, true);
+
+  const { error } = await supabaseAdmin
     .from("list_items")
     .update({ checked: args.checked })
     .in("id", args.item_ids);
@@ -598,8 +642,11 @@ async function handleCheckItems(
   });
 }
 
-async function handleRemoveItems(supabase: SupabaseClient, args: { item_ids: string[] }) {
-  const { error } = await supabase.from("list_items").delete().in("id", args.item_ids);
+async function handleRemoveItems(userId: string, args: { item_ids: string[] }) {
+  const access = await verifyItemsAccess(userId, args.item_ids);
+  if (!access.ok) return toolResult(access.error!, true);
+
+  const { error } = await supabaseAdmin.from("list_items").delete().in("id", args.item_ids);
   if (error) return toolResult(`Error: ${error.message}`, true);
   return toolResult({ message: `Removed ${args.item_ids.length} items` });
 }
@@ -609,54 +656,52 @@ async function handleRemoveItems(supabase: SupabaseClient, args: { item_ids: str
 async function dispatchTool(
   name: string,
   args: Record<string, unknown>,
-  supabase: SupabaseClient,
-  userId: string,
-  userJwt: string
+  userId: string
 ) {
   switch (name) {
     case "search_recipes":
-      return handleSearchRecipes(supabase, args as { query?: string; limit?: number });
+      return handleSearchRecipes(userId, args as { query?: string; limit?: number });
     case "get_recipe":
-      return handleGetRecipe(supabase, args as { recipe_id: string });
+      return handleGetRecipe(userId, args as { recipe_id: string });
     case "create_recipe":
-      return handleCreateRecipe(supabase, userId, args as {
+      return handleCreateRecipe(userId, args as {
         title: string;
         ingredients: { name: string; description?: string }[];
         steps: string[];
       });
     case "update_recipe":
-      return handleUpdateRecipe(supabase, args as {
+      return handleUpdateRecipe(userId, args as {
         recipe_id: string;
         title?: string;
         ingredients?: { name: string; description?: string }[];
         steps?: string[];
       });
     case "delete_recipe":
-      return handleDeleteRecipe(supabase, args as { recipe_id: string });
+      return handleDeleteRecipe(userId, args as { recipe_id: string });
     case "import_recipe_from_url":
-      return handleImportFromUrl(userJwt, args as { url: string });
+      return handleImportFromUrl(args as { url: string });
     case "import_recipe_from_text":
-      return handleImportFromText(userJwt, args as { text: string });
+      return handleImportFromText(args as { text: string });
     case "list_shopping_lists":
-      return handleListShoppingLists(supabase, userId);
+      return handleListShoppingLists(userId);
     case "get_shopping_list":
-      return handleGetShoppingList(supabase, args as { list_id: string });
+      return handleGetShoppingList(userId, args as { list_id: string });
     case "create_shopping_list":
-      return handleCreateShoppingList(supabase, args as { name: string });
+      return handleCreateShoppingList(userId, args as { name: string });
     case "add_items_to_list":
-      return handleAddItemsToList(supabase, args as {
+      return handleAddItemsToList(userId, args as {
         list_id: string;
         items: { name: string; description?: string }[];
       });
     case "add_recipe_ingredients_to_list":
-      return handleAddRecipeIngredientsToList(supabase, args as {
+      return handleAddRecipeIngredientsToList(userId, args as {
         list_id: string;
         recipe_id: string;
       });
     case "check_items":
-      return handleCheckItems(supabase, args as { item_ids: string[]; checked: boolean });
+      return handleCheckItems(userId, args as { item_ids: string[]; checked: boolean });
     case "remove_items":
-      return handleRemoveItems(supabase, args as { item_ids: string[] });
+      return handleRemoveItems(userId, args as { item_ids: string[] });
     default:
       return toolResult(`Unknown tool: ${name}`, true);
   }
@@ -695,11 +740,7 @@ Deno.serve(async (req) => {
     // Update last_used_at (fire-and-forget)
     supabaseAdmin
       .rpc("update_token_last_used", { p_token_id: tokenResult.tokenId })
-      .catch((err: unknown) => console.error("Failed to update token last_used_at:", err));
-
-    // Mint user JWT and create scoped client
-    const userJwt = await mintUserJwt(tokenResult.userId);
-    const supabase = createUserClient(userJwt);
+      .then(null, (err: unknown) => console.error("Failed to update token last_used_at:", err));
 
     // --- Parse JSON-RPC request ---
     let body;
@@ -740,9 +781,7 @@ Deno.serve(async (req) => {
         const toolResponse = await dispatchTool(
           toolName,
           toolArgs,
-          supabase,
-          tokenResult.userId,
-          userJwt
+          tokenResult.userId
         );
         result = jsonRpcResponse(id, toolResponse);
         break;
