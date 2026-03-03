@@ -249,8 +249,8 @@ export type Database = {
           p_name: string
         }
         Returns: {
+          id: string
           token: string
-          token_prefix: string
         }[]
       }
       add_items_to_list: {
