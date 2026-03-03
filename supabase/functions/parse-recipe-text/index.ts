@@ -48,37 +48,41 @@ Deno.serve(async (req) => {
       });
     }
 
-    try {
-      const token = authHeader.replace("Bearer ", "");
-      await jose.jwtVerify(token, SUPABASE_JWT_KEYS, {
-        issuer: SUPABASE_JWT_ISSUER,
-        audience: "authenticated",
-      });
-    } catch (e) {
-      console.error("Auth failed:", e);
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
+    const token = authHeader.replace("Bearer ", "");
+    const isServiceRole = token === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    // Rate limit check
-    const rateLimitRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/check_ai_rate_limit`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": authHeader,
-        "apikey": SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify({}),
-    });
-    if (rateLimitRes.ok) {
-      const allowed = await rateLimitRes.json();
-      if (!allowed) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-          status: 429,
+    if (!isServiceRole) {
+      try {
+        await jose.jwtVerify(token, SUPABASE_JWT_KEYS, {
+          issuer: SUPABASE_JWT_ISSUER,
+          audience: "authenticated",
+        });
+      } catch (e) {
+        console.error("Auth failed:", e);
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });
+      }
+
+      // Rate limit check (skip for service role / internal MCP calls)
+      const rateLimitRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/check_ai_rate_limit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": authHeader,
+          "apikey": SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({}),
+      });
+      if (rateLimitRes.ok) {
+        const allowed = await rateLimitRes.json();
+        if (!allowed) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
+            status: 429,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
+        }
       }
     }
 
