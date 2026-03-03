@@ -34,7 +34,11 @@ export default function OAuthConsentScreen() {
 
   // Fetch authorization details
   useEffect(() => {
-    if (authLoading || !session || !authorization_id) return;
+    if (authLoading || !session) return;
+    if (!authorization_id) {
+      setLoadingDetails(false);
+      return;
+    }
 
     (async () => {
       try {

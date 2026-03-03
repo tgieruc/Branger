@@ -18,7 +18,7 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
 // --- Auth helpers ---
@@ -730,9 +730,26 @@ async function dispatchTool(
 
 // --- Main Handler ---
 
+// --- OAuth 2.0 Protected Resource Metadata (RFC 9728) ---
+const RESOURCE_METADATA = {
+  resource: SUPABASE_URL + "/functions/v1/mcp-server",
+  authorization_servers: [SUPABASE_URL + "/auth/v1"],
+  scopes_supported: ["openid", "profile", "email"],
+  bearer_methods_supported: ["header"],
+};
+
 Deno.serve(async (req) => {
+  const url = new URL(req.url);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Protected Resource Metadata (RFC 9728)
+  if (req.method === "GET" && url.pathname.endsWith("/.well-known/oauth-protected-resource")) {
+    return new Response(JSON.stringify(RESOURCE_METADATA), {
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 
   if (req.method !== "POST") {
@@ -745,7 +762,14 @@ Deno.serve(async (req) => {
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
         JSON.stringify({ error: "Missing Authorization header" }),
-        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        {
+          status: 401,
+          headers: {
+            "Content-Type": "application/json",
+            "WWW-Authenticate": `Bearer resource_metadata="${SUPABASE_URL}/functions/v1/mcp-server/.well-known/oauth-protected-resource"`,
+            ...corsHeaders,
+          },
+        }
       );
     }
     const bearerToken = authHeader.replace("Bearer ", "");
