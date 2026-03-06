@@ -5,8 +5,8 @@
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+const tintColorLight = '#5C7A00';  // darkened lime for contrast on white
+const tintColorDark = '#D4ED6E';   // lime
 
 export const Colors = {
   light: {
@@ -19,7 +19,8 @@ export const Colors = {
     icon: '#687076',
     tabIconDefault: '#687076',
     tabIconSelected: tintColorLight,
-    primary: '#007AFF',
+    primary: '#D4ED6E',       // lime — button backgrounds
+    primaryText: '#5C7A00',   // dark lime — text links, inline actions
     danger: '#ff3b30',
     success: '#34c759',
     aiPurple: '#5856D6',
@@ -40,9 +41,9 @@ export const Colors = {
     shadow: '#000',
     cancelButton: '#f0f0f0',
     cancelText: '#333',
-    buttonText: '#fff',
-    addToListBg: '#f0f7ff',
-    addToListBorder: '#d0e4ff',
+    buttonText: '#1A1A2E',    // navy on lime buttons
+    addToListBg: '#f4f8e4',   // lime tint
+    addToListBorder: '#d4e8a0',
     checkedText: '#bbb',
     chevron: '#ccc',
     searchBarBg: '#fff',
@@ -52,40 +53,41 @@ export const Colors = {
     text: '#ECEDEE',
     textSecondary: '#a1a1a6',
     textTertiary: '#8e8e93',
-    background: '#000',
-    backgroundSecondary: '#1c1c1e',
+    background: '#0F1117',          // void
+    backgroundSecondary: '#1A1A2E', // navy deep
     tint: tintColorDark,
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
-    primary: '#0A84FF',
+    primary: '#D4ED6E',             // lime
+    primaryText: '#D4ED6E',         // lime on dark = good contrast
     danger: '#ff453a',
     success: '#30d158',
     aiPurple: '#5E5CE6',
-    border: '#38383a',
-    borderLight: '#2c2c2e',
-    card: '#1c1c1e',
-    inputBorder: '#38383a',
-    inputBackground: '#1c1c1e',
+    border: '#2a2a4a',              // navy-tinted
+    borderLight: '#1e1e3a',
+    card: '#1A1A2E',                // navy deep
+    inputBorder: '#2a2a4a',
+    inputBackground: '#16213E',     // navy mid
     placeholder: '#636366',
     modalOverlay: 'rgba(0,0,0,0.7)',
-    modalBackground: '#2c2c2e',
+    modalBackground: '#1A1A2E',
     offlineBannerBg: '#332d00',
     offlineBannerText: '#ffd60a',
-    tabBarBackground: '#1c1c1e',
-    tabBarBorder: '#38383a',
-    headerBackground: '#1c1c1e',
+    tabBarBackground: '#0F1117',    // void
+    tabBarBorder: '#2a2a4a',
+    headerBackground: '#0F1117',    // void
     headerText: '#ECEDEE',
     shadow: '#000',
-    cancelButton: '#3a3a3c',
+    cancelButton: '#16213E',        // navy mid
     cancelText: '#ECEDEE',
-    buttonText: '#fff',
-    addToListBg: '#1a2a3a',
-    addToListBorder: '#1a3a5c',
+    buttonText: '#1A1A2E',          // navy on lime
+    addToListBg: '#1a2a1a',         // lime-tinted dark
+    addToListBorder: '#2a3a1a',
     checkedText: '#636366',
-    chevron: '#48484a',
-    searchBarBg: '#1c1c1e',
-    inputAreaBg: '#1c1c1e',
+    chevron: '#3a3a5a',
+    searchBarBg: '#1A1A2E',
+    inputAreaBg: '#1A1A2E',
   },
 };
 
