@@ -242,8 +242,8 @@ export default function EditRecipeScreen() {
             <Image source={{ uri: photoUrl }} style={styles.photoPreview} />
             <View style={styles.photoActions}>
               <TouchableOpacity onPress={handleChangePhoto} style={styles.photoActionBtn} accessibilityLabel="Change photo" accessibilityRole="button">
-                <Ionicons name="camera-outline" size={18} color={colors.primary} />
-                <Text style={[styles.photoActionText, { color: colors.primary }]}>Change Photo</Text>
+                <Ionicons name="camera-outline" size={18} color={colors.primaryText} />
+                <Text style={[styles.photoActionText, { color: colors.primaryText }]}>Change Photo</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleRemovePhoto} style={styles.photoActionBtn} accessibilityLabel="Remove photo" accessibilityRole="button">
                 <Ionicons name="trash-outline" size={18} color={colors.danger} />
@@ -253,8 +253,8 @@ export default function EditRecipeScreen() {
           </View>
         ) : (
           <TouchableOpacity onPress={handleChangePhoto} style={[styles.addPhotoButton, { borderColor: colors.inputBorder }]} accessibilityLabel="Add photo" accessibilityRole="button">
-            <Ionicons name="camera-outline" size={24} color={colors.primary} />
-            <Text style={[styles.addPhotoText, { color: colors.primary }]}>Add Photo</Text>
+            <Ionicons name="camera-outline" size={24} color={colors.primaryText} />
+            <Text style={[styles.addPhotoText, { color: colors.primaryText }]}>Add Photo</Text>
           </TouchableOpacity>
         )}
 
@@ -272,8 +272,8 @@ export default function EditRecipeScreen() {
           </View>
         ))}
         <TouchableOpacity onPress={addIngredient} style={styles.addRow} accessibilityLabel="Add ingredient" accessibilityRole="button">
-          <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
-          <Text style={[styles.addText, { color: colors.primary }]}>Add ingredient</Text>
+          <Ionicons name="add-circle-outline" size={20} color={colors.primaryText} />
+          <Text style={[styles.addText, { color: colors.primaryText }]}>Add ingredient</Text>
         </TouchableOpacity>
 
         <Text style={[styles.label, { color: colors.text }]}>Steps</Text>
@@ -287,8 +287,8 @@ export default function EditRecipeScreen() {
           </View>
         ))}
         <TouchableOpacity onPress={addStep} style={styles.addRow} accessibilityLabel="Add step" accessibilityRole="button">
-          <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
-          <Text style={[styles.addText, { color: colors.primary }]}>Add step</Text>
+          <Ionicons name="add-circle-outline" size={20} color={colors.primaryText} />
+          <Text style={[styles.addText, { color: colors.primaryText }]}>Add step</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={[styles.saveButton, { backgroundColor: colors.primary }, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving} accessibilityLabel="Save changes" accessibilityRole="button">

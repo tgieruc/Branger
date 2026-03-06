@@ -95,7 +95,7 @@ export default function RegisterScreen() {
       <TouchableOpacity style={[styles.button, { backgroundColor: colors.primary }, loading && { opacity: 0.6 }]} onPress={handleRegister} disabled={loading}>
         <Text style={[styles.buttonText, { color: colors.buttonText }]}>{loading ? 'Creating...' : 'Create Account'}</Text>
       </TouchableOpacity>
-      <Link href="/login" style={[styles.link, { color: colors.primary }]}>
+      <Link href="/login" style={[styles.link, { color: colors.primaryText }]}>
         Already have an account? Sign In
       </Link>
     </KeyboardAvoidingView>

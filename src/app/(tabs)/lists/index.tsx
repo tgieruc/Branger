@@ -196,7 +196,7 @@ export default function ListsScreen() {
             onSubmitEditing={handleCreate}
           />
           <TouchableOpacity onPress={handleCreate}>
-            <Ionicons name="checkmark-circle" size={32} color={colors.primary} />
+            <Ionicons name="checkmark-circle" size={32} color={colors.primaryText} />
           </TouchableOpacity>
         </View>
       ) : (

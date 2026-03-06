@@ -42,7 +42,7 @@ export default function ForgotPasswordScreen() {
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           Check your email for a password reset link.
         </Text>
-        <Link href="/login" style={[styles.link, { color: colors.primary }]} accessibilityLabel="Back to Sign In">
+        <Link href="/login" style={[styles.link, { color: colors.primaryText }]} accessibilityLabel="Back to Sign In">
           Back to Sign In
         </Link>
       </KeyboardAvoidingView>
@@ -77,7 +77,7 @@ export default function ForgotPasswordScreen() {
       >
         <Text style={styles.buttonText}>{loading ? 'Sending...' : 'Send Reset Link'}</Text>
       </TouchableOpacity>
-      <Link href="/login" style={[styles.link, { color: colors.primary }]} accessibilityLabel="Back to Sign In">
+      <Link href="/login" style={[styles.link, { color: colors.primaryText }]} accessibilityLabel="Back to Sign In">
         Back to Sign In
       </Link>
     </KeyboardAvoidingView>

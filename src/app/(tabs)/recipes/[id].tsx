@@ -204,10 +204,10 @@ export default function RecipeDetailScreen() {
           headerRight: () => (
             <View style={styles.headerRight}>
               <TouchableOpacity onPress={handleShare} style={styles.headerBtn} accessibilityLabel="Share recipe" accessibilityRole="button">
-                <Ionicons name="share-outline" size={22} color={colors.primary} />
+                <Ionicons name="share-outline" size={22} color={colors.primaryText} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => router.push(`/(tabs)/recipes/edit/${id}`)} style={styles.headerBtn} accessibilityLabel="Edit recipe" accessibilityRole="button">
-                <Ionicons name="create-outline" size={22} color={colors.primary} />
+                <Ionicons name="create-outline" size={22} color={colors.primaryText} />
               </TouchableOpacity>
               <TouchableOpacity onPress={handleDelete} style={styles.headerBtn} accessibilityLabel="Delete recipe" accessibilityRole="button">
                 <Ionicons name="trash-outline" size={22} color={colors.danger} />
@@ -222,8 +222,8 @@ export default function RecipeDetailScreen() {
         )}
 
         <TouchableOpacity onPress={handleAddToList} style={[styles.addToListButton, { backgroundColor: colors.addToListBg, borderColor: colors.addToListBorder }, addingToList && { opacity: 0.6 }]} disabled={addingToList} accessibilityLabel="Add ingredients to shopping list" accessibilityRole="button">
-          <Ionicons name="cart-outline" size={20} color={colors.primary} />
-          <Text style={[styles.addToListText, { color: colors.primary }]}>Add to Shopping List</Text>
+          <Ionicons name="cart-outline" size={20} color={colors.primaryText} />
+          <Text style={[styles.addToListText, { color: colors.primaryText }]}>Add to Shopping List</Text>
         </TouchableOpacity>
 
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Ingredients</Text>
@@ -263,7 +263,7 @@ export default function RecipeDetailScreen() {
                 style={[styles.modalOption, { borderBottomColor: colors.borderLight }]}
                 onPress={() => addIngredientsToList(list)}
               >
-                <Ionicons name="list-outline" size={20} color={colors.primary} />
+                <Ionicons name="list-outline" size={20} color={colors.primaryText} />
                 <Text style={[styles.modalOptionText, { color: colors.text }]}>{list.name}</Text>
               </TouchableOpacity>
             ))}
@@ -279,7 +279,7 @@ export default function RecipeDetailScreen() {
                   onSubmitEditing={createListAndAddIngredients}
                 />
                 <TouchableOpacity onPress={createListAndAddIngredients}>
-                  <Ionicons name="checkmark-circle" size={28} color={colors.primary} />
+                  <Ionicons name="checkmark-circle" size={28} color={colors.primaryText} />
                 </TouchableOpacity>
               </View>
             ) : (

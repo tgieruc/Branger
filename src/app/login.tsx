@@ -65,7 +65,7 @@ export default function LoginScreen() {
       <Link href="/forgot-password" style={[styles.forgotLink, { color: colors.textSecondary }]}>
         Forgot Password?
       </Link>
-      <Link href="/register" style={[styles.link, { color: colors.primary }]}>
+      <Link href="/register" style={[styles.link, { color: colors.primaryText }]}>
         Don&apos;t have an account? Sign Up
       </Link>
     </KeyboardAvoidingView>

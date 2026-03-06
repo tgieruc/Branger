@@ -54,7 +54,7 @@ export default function SettingsScreen() {
             accessibilityLabel="Change password"
             accessibilityRole="button"
           >
-            <Ionicons name="key-outline" size={20} color={colors.primary} style={styles.rowIcon} />
+            <Ionicons name="key-outline" size={20} color={colors.primaryText} style={styles.rowIcon} />
             <Text style={[styles.rowLabel, { color: colors.text }]}>Change Password</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.chevron} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>

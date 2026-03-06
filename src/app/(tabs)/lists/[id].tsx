@@ -227,7 +227,7 @@ export default function ListDetailScreen() {
           headerRight: () => (
             <View style={styles.headerRight}>
               <TouchableOpacity onPress={handleShareList} style={styles.headerBtn} accessibilityLabel="Share list" accessibilityRole="button">
-                <Ionicons name="share-outline" size={22} color={colors.primary} />
+                <Ionicons name="share-outline" size={22} color={colors.primaryText} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setDeleteListVisible(true)} style={styles.headerBtn} accessibilityLabel="Delete list" accessibilityRole="button">
                 <Ionicons name="trash-outline" size={22} color={colors.danger} />
@@ -324,7 +324,7 @@ export default function ListDetailScreen() {
           onSubmitEditing={addItem}
         />
         <TouchableOpacity onPress={addItem} style={styles.addButton}>
-          <Ionicons name="add-circle" size={36} color={colors.primary} />
+          <Ionicons name="add-circle" size={36} color={colors.primaryText} />
         </TouchableOpacity>
       </View>
 
