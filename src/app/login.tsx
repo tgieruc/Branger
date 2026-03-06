@@ -6,6 +6,7 @@ import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/lib/auth';
 import { useColors } from '@/hooks/useColors';
+import { BrangerLogo } from '@/components/BrangerLogo';
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
@@ -28,7 +29,9 @@ export default function LoginScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <Text style={[styles.title, { color: colors.text }]}>Branger</Text>
+      <View style={styles.logoContainer}>
+        <BrangerLogo size={48} showTagline />
+      </View>
       <TextInput
         style={[styles.input, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground, color: colors.text }]}
         placeholder="Email"
@@ -74,7 +77,7 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', padding: 24, maxWidth: 600, width: '100%', alignSelf: 'center' },
-  title: { fontSize: 32, fontWeight: 'bold', textAlign: 'center', marginBottom: 48 },
+  logoContainer: { alignItems: 'center', marginBottom: 48 },
   input: {
     borderWidth: 1, borderRadius: 8,
     padding: 12, marginBottom: 16, fontSize: 16,
