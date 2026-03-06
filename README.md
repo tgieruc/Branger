@@ -16,7 +16,7 @@ A recipe and collaborative shopping list app with AI-powered recipe import. Buil
 - React Native 0.81 + Expo SDK 54
 - Expo Router v6 (file-based routing)
 - Supabase (PostgreSQL, Auth, Storage, Edge Functions)
-- OpenAI GPT-4o + Mistral (AI recipe parsing)
+- Mistral AI (recipe parsing + photo OCR)
 - TypeScript
 
 ## Prerequisites
@@ -25,12 +25,12 @@ A recipe and collaborative shopping list app with AI-powered recipe import. Buil
 - npm or yarn
 - [Expo CLI](https://docs.expo.dev/get-started/installation/)
 - [Supabase account](https://supabase.com) (or self-hosted instance)
-- OpenAI API key (for AI features)
-- Mistral API key (for photo OCR)
+- Mistral API key (for AI features)
 
 ## Setup
 
 1. **Clone and install:**
+
    ```bash
    git clone <repo-url>
    cd branger
@@ -38,6 +38,7 @@ A recipe and collaborative shopping list app with AI-powered recipe import. Buil
    ```
 
 2. **Configure environment:**
+
    ```bash
    cp .env.example .env.local
    # Edit .env.local with your Supabase URL and anon key
@@ -47,10 +48,10 @@ A recipe and collaborative shopping list app with AI-powered recipe import. Buil
    - Create a new Supabase project
    - Run migrations in order from `supabase/migrations/`
    - Set edge function secrets in the Supabase dashboard:
-     - `OPENAI_API_KEY`
      - `MISTRAL_API_KEY`
 
 4. **Deploy edge functions:**
+
    ```bash
    npx supabase functions deploy parse-recipe-text --no-verify-jwt
    npx supabase functions deploy parse-recipe-url --no-verify-jwt
@@ -64,12 +65,11 @@ A recipe and collaborative shopping list app with AI-powered recipe import. Buil
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `EXPO_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
-| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase anonymous/public key |
-| `OPENAI_API_KEY` | OpenAI API key (set in Supabase dashboard) |
-| `MISTRAL_API_KEY` | Mistral API key (set in Supabase dashboard) |
+| Variable                        | Description                                 |
+| ------------------------------- | ------------------------------------------- |
+| `EXPO_PUBLIC_SUPABASE_URL`      | Your Supabase project URL                   |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase anonymous/public key          |
+| `MISTRAL_API_KEY`               | Mistral API key (set in Supabase dashboard) |
 
 ## Testing
 
