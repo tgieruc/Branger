@@ -2,7 +2,6 @@ import { StyleSheet } from 'react-native';
 import Animated, { FadeInUp, FadeOutUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useToast } from '@/lib/toast';
-import { useColors } from '@/hooks/useColors';
 import { useTheme } from '@/lib/theme';
 
 const TYPE_COLORS = {
@@ -14,7 +13,6 @@ const TYPE_COLORS = {
 export function ToastContainer() {
   const { toasts } = useToast();
   const insets = useSafeAreaInsets();
-  const colors = useColors();
   const { colorScheme } = useTheme();
   const isDark = colorScheme === 'dark';
 
