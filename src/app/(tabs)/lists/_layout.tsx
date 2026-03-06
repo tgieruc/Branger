@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
+import { BrangerLogo } from '@/components/BrangerLogo';
 
 export default function ListsLayout() {
   const colors = useColors();
@@ -12,7 +13,7 @@ export default function ListsLayout() {
         contentStyle: { backgroundColor: colors.background },
       }}
     >
-      <Stack.Screen name="index" options={{ title: 'Shopping Lists' }} />
+      <Stack.Screen name="index" options={{ headerTitle: () => <BrangerLogo size={24} /> }} />
       <Stack.Screen name="[id]" options={{ title: 'List' }} />
     </Stack>
   );
