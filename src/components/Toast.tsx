@@ -2,19 +2,19 @@ import { StyleSheet } from 'react-native';
 import Animated, { FadeInUp, FadeOutUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useToast } from '@/lib/toast';
-import { useColors } from '@/hooks/useColors';
+import { useTheme } from '@/lib/theme';
 
 const TYPE_COLORS = {
   success: { light: '#34c759', dark: '#30d158' },
   error: { light: '#ff3b30', dark: '#ff453a' },
-  info: { light: '#007AFF', dark: '#0A84FF' },
+  info: { light: '#5C7A00', dark: '#5C7A00' },
 };
 
 export function ToastContainer() {
   const { toasts } = useToast();
   const insets = useSafeAreaInsets();
-  const colors = useColors();
-  const isDark = colors.background === '#000';
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
 
   return (
     <>
