@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator,
-  Platform, Share, Alert, RefreshControl,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  StyleSheet,
+  ActivityIndicator,
+  Platform,
+  Share,
+  Alert,
+  RefreshControl,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -52,45 +61,74 @@ export default function ListDetailScreen() {
 
     const channel = supabase
       .channel(`list-${id}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'list_items',
-        filter: `list_id=eq.${id}`,
-      }, (payload) => {
-        setItems((prev) => {
-          if (prev.some(i => i.id === payload.new.id)) return prev;
-          return [...prev, payload.new as ListItem];
-        });
-      })
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'list_items',
-        filter: `list_id=eq.${id}`,
-      }, (payload) => {
-        setItems((prev) => prev.map(i =>
-          i.id === payload.new.id ? (payload.new as ListItem) : i
-        ));
-      })
-      .on('postgres_changes', {
-        event: 'DELETE',
-        schema: 'public',
-        table: 'list_items',
-        filter: `list_id=eq.${id}`,
-      }, (payload) => {
-        setItems((prev) => prev.filter(i => i.id !== payload.old.id));
-      })
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'list_items',
+          filter: `list_id=eq.${id}`,
+        },
+        (payload) => {
+          setItems((prev) => {
+            if (prev.some((i) => i.id === payload.new.id)) return prev;
+            const optIndex = prev.findIndex(
+              (i) =>
+                typeof i.id === 'string' &&
+                i.id.startsWith('temp_') &&
+                i.name === payload.new.name &&
+                i.description === payload.new.description,
+            );
+            if (optIndex !== -1) {
+              const next = [...prev];
+              next[optIndex] = payload.new as ListItem;
+              return next;
+            }
+            return [...prev, payload.new as ListItem];
+          });
+        },
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'list_items',
+          filter: `list_id=eq.${id}`,
+        },
+        (payload) => {
+          setItems((prev) =>
+            prev.map((i) => (i.id === payload.new.id ? (payload.new as ListItem) : i)),
+          );
+        },
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'list_items',
+          filter: `list_id=eq.${id}`,
+        },
+        (payload) => {
+          setItems((prev) => prev.filter((i) => i.id !== payload.old.id));
+        },
+      )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [id, fetchData]);
 
   useEffect(() => {
     if (isOnline && !wasOnlineRef.current) {
       replayQueue(supabase).then(({ failed }) => {
         if (failed > 0) {
-          Alert.alert('Sync Issue', `${failed} change(s) could not be synced. They will be retried next time.`);
+          Alert.alert(
+            'Sync Issue',
+            `${failed} change(s) could not be synced. They will be retried next time.`,
+          );
         }
         fetchData();
       });
@@ -100,7 +138,7 @@ export default function ListDetailScreen() {
 
   const toggleItem = async (item: ListItem) => {
     const previousItems = items;
-    setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, checked: !i.checked } : i));
+    setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, checked: !i.checked } : i)));
     if (!isOnline) {
       enqueue({ type: 'toggle_item', payload: { itemId: item.id, checked: !item.checked } });
       return;
@@ -145,29 +183,38 @@ export default function ListDetailScreen() {
       position: maxPos + 1,
     };
 
+    const tempId = `temp_${Date.now()}`;
+    const optimisticItem = { ...itemData, id: tempId, checked: false, recipe_id: null } as ListItem;
+
     if (!isOnline) {
-      const tempId = `temp_${Date.now()}`;
-      setItems((prev) => [...prev, { ...itemData, id: tempId, checked: false, recipe_id: null } as ListItem]);
+      setItems((prev) => [...prev, optimisticItem]);
       enqueue({ type: 'add_item', payload: itemData });
       setNewItemName('');
       setNewItemDesc('');
       return;
     }
 
-    await supabase.from('list_items').insert(itemData);
-
+    // Optimistically update UI immediately
+    setItems((prev) => [...prev, optimisticItem]);
     setNewItemName('');
     setNewItemDesc('');
+
+    const { data, error } = await supabase.from('list_items').insert(itemData).select().single();
+
+    if (error) {
+      // Revert optimistic addition on failure
+      setItems((prev) => prev.filter((i) => i.id !== tempId));
+      Alert.alert('Error', 'Failed to add item. Please try again.');
+    } else if (data) {
+      // Replace optimistic item with actual database-returned row
+      setItems((prev) => prev.map((i) => (i.id === tempId ? (data as ListItem) : i)));
+    }
   };
 
   const confirmDeleteList = async () => {
     if (!user) return;
     setDeleteListVisible(false);
-    await supabase
-      .from('list_members')
-      .delete()
-      .eq('list_id', id)
-      .eq('user_id', user.id);
+    await supabase.from('list_members').delete().eq('list_id', id).eq('user_id', user.id);
     router.back();
   };
 
@@ -176,9 +223,10 @@ export default function ListDetailScreen() {
     const shareUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/share-redirect/list/${id}?token=${list.invite_token}`;
     try {
       await Share.share({
-        message: Platform.OS === 'ios'
-          ? `Join my shopping list "${list.name}" on Branger`
-          : `Join my shopping list "${list.name}" on Branger\n${shareUrl}`,
+        message:
+          Platform.OS === 'ios'
+            ? `Join my shopping list "${list.name}" on Branger`
+            : `Join my shopping list "${list.name}" on Branger\n${shareUrl}`,
         url: Platform.OS === 'ios' ? shareUrl : undefined,
       });
     } catch {
@@ -226,10 +274,20 @@ export default function ListDetailScreen() {
           title: list?.name ?? 'List',
           headerRight: () => (
             <View style={styles.headerRight}>
-              <TouchableOpacity onPress={handleShareList} style={styles.headerBtn} accessibilityLabel="Share list" accessibilityRole="button">
+              <TouchableOpacity
+                onPress={handleShareList}
+                style={styles.headerBtn}
+                accessibilityLabel="Share list"
+                accessibilityRole="button"
+              >
                 <Ionicons name="share-outline" size={22} color={colors.primaryText} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => setDeleteListVisible(true)} style={styles.headerBtn} accessibilityLabel="Delete list" accessibilityRole="button">
+              <TouchableOpacity
+                onPress={() => setDeleteListVisible(true)}
+                style={styles.headerBtn}
+                accessibilityLabel="Delete list"
+                accessibilityRole="button"
+              >
                 <Ionicons name="trash-outline" size={22} color={colors.danger} />
               </TouchableOpacity>
             </View>
@@ -252,11 +310,14 @@ export default function ListDetailScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={async () => {
-            setRefreshing(true);
-            await fetchData();
-            setRefreshing(false);
-          }} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await fetchData();
+              setRefreshing(false);
+            }}
+          />
         }
         ListEmptyComponent={
           <View style={styles.emptyList}>
@@ -277,11 +338,26 @@ export default function ListDetailScreen() {
               color={item.checked ? colors.success : colors.border}
             />
             <View style={styles.itemInfo}>
-              <Text style={[styles.itemName, { color: colors.text }, item.checked && { textDecorationLine: 'line-through', color: colors.checkedText }]}>
+              <Text
+                style={[
+                  styles.itemName,
+                  { color: colors.text },
+                  item.checked && { textDecorationLine: 'line-through', color: colors.checkedText },
+                ]}
+              >
                 {item.name}
               </Text>
               {item.description ? (
-                <Text style={[styles.itemDesc, { color: colors.textTertiary }, item.checked && { textDecorationLine: 'line-through', color: colors.checkedText }]}>
+                <Text
+                  style={[
+                    styles.itemDesc,
+                    { color: colors.textTertiary },
+                    item.checked && {
+                      textDecorationLine: 'line-through',
+                      color: colors.checkedText,
+                    },
+                  ]}
+                >
                   {item.description}
                 </Text>
               ) : null}
@@ -297,7 +373,10 @@ export default function ListDetailScreen() {
         )}
         ListFooterComponent={
           checkedCount > 0 ? (
-            <TouchableOpacity onPress={() => setClearCheckedVisible(true)} style={styles.clearChecked}>
+            <TouchableOpacity
+              onPress={() => setClearCheckedVisible(true)}
+              style={styles.clearChecked}
+            >
               <Text style={[styles.clearCheckedText, { color: colors.danger }]}>
                 Clear {checkedCount} checked item{checkedCount !== 1 ? 's' : ''}
               </Text>
@@ -306,9 +385,26 @@ export default function ListDetailScreen() {
         }
       />
 
-      <View style={[styles.addRow, { marginBottom: keyboardHeight, backgroundColor: colors.inputAreaBg, borderTopColor: colors.borderLight }]}>
+      <View
+        style={[
+          styles.addRow,
+          {
+            marginBottom: keyboardHeight,
+            backgroundColor: colors.inputAreaBg,
+            borderTopColor: colors.borderLight,
+          },
+        ]}
+      >
         <TextInput
-          style={[styles.addInput, { flex: 2, borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]}
+          style={[
+            styles.addInput,
+            {
+              flex: 2,
+              borderColor: colors.inputBorder,
+              color: colors.text,
+              backgroundColor: colors.inputBackground,
+            },
+          ]}
           placeholder="Item name"
           placeholderTextColor={colors.placeholder}
           value={newItemName}
@@ -316,7 +412,16 @@ export default function ListDetailScreen() {
           onSubmitEditing={addItem}
         />
         <TextInput
-          style={[styles.addInput, { flex: 1, marginLeft: 8, borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]}
+          style={[
+            styles.addInput,
+            {
+              flex: 1,
+              marginLeft: 8,
+              borderColor: colors.inputBorder,
+              color: colors.text,
+              backgroundColor: colors.inputBackground,
+            },
+          ]}
           placeholder="Amount"
           placeholderTextColor={colors.placeholder}
           value={newItemDesc}
@@ -341,7 +446,10 @@ export default function ListDetailScreen() {
         title="Clear Checked Items"
         message={`Remove ${checkedCount} checked item${checkedCount !== 1 ? 's' : ''} from the list?`}
         confirmLabel="Clear"
-        onConfirm={() => { setClearCheckedVisible(false); clearChecked(); }}
+        onConfirm={() => {
+          setClearCheckedVisible(false);
+          clearChecked();
+        }}
         onCancel={() => setClearCheckedVisible(false)}
       />
 
@@ -366,8 +474,11 @@ const styles = StyleSheet.create({
   headerRight: { flexDirection: 'row', gap: 16, marginRight: 4 },
   headerBtn: { padding: 4 },
   itemRow: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16,
-    paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   itemInfo: { marginLeft: 12, flex: 1 },
   itemName: { fontSize: 16 },
@@ -376,16 +487,25 @@ const styles = StyleSheet.create({
   clearChecked: { paddingVertical: 14, alignItems: 'center' },
   clearCheckedText: { fontSize: 14 },
   addRow: {
-    flexDirection: 'row', alignItems: 'center', padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
     borderTopWidth: 1,
   },
   addInput: {
-    borderWidth: 1, borderRadius: 8, padding: 10, fontSize: 15,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 15,
   },
   addButton: { marginLeft: 8 },
   offlineBanner: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 8, paddingHorizontal: 16, gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    gap: 8,
   },
   offlineBannerText: { fontSize: 13 },
   emptyList: { alignItems: 'center', paddingTop: 64 },
