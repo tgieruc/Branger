@@ -7,11 +7,7 @@ export function NetInfoProvider({ children }: { children: React.ReactNode }) {
   const netInfo = useNetInfo();
   const isOnline = netInfo.isConnected !== false;
 
-  return (
-    <NetInfoContext.Provider value={isOnline}>
-      {children}
-    </NetInfoContext.Provider>
-  );
+  return <NetInfoContext.Provider value={isOnline}>{children}</NetInfoContext.Provider>;
 }
 
 export function useIsOnline(): boolean {

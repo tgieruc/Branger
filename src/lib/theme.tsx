@@ -33,8 +33,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     AsyncStorage.setItem(STORAGE_KEY, pref);
   };
 
-  const colorScheme: 'light' | 'dark' =
-    preference === 'system' ? systemScheme : preference;
+  const colorScheme: 'light' | 'dark' = preference === 'system' ? systemScheme : preference;
 
   if (!loaded) return null;
 

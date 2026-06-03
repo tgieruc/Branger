@@ -25,17 +25,19 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     if (!session && inAuthGroup) {
       router.replace('/login');
     } else if (session && !inAuthGroup && !inPublicRoute && !inListJoin && !inResetFlow) {
-      AsyncStorage.multiGet(['oauth_return_url', 'pendingListJoin']).then(([[, oauthUrl], [, pendingId]]) => {
-        if (oauthUrl) {
-          AsyncStorage.removeItem('oauth_return_url');
-          router.replace(oauthUrl as any);
-        } else if (pendingId) {
-          AsyncStorage.removeItem('pendingListJoin');
-          router.replace(`/list/${pendingId}` as any);
-        } else {
-          router.replace('/(tabs)/recipes');
-        }
-      });
+      AsyncStorage.multiGet(['oauth_return_url', 'pendingListJoin']).then(
+        ([[, oauthUrl], [, pendingId]]) => {
+          if (oauthUrl) {
+            AsyncStorage.removeItem('oauth_return_url');
+            router.replace(oauthUrl as any);
+          } else if (pendingId) {
+            AsyncStorage.removeItem('pendingListJoin');
+            router.replace(`/list/${pendingId}` as any);
+          } else {
+            router.replace('/(tabs)/recipes');
+          }
+        },
+      );
     }
   }, [session, loading, segments, router]);
 
@@ -60,14 +62,10 @@ function OTAUpdater() {
         const update = await Updates.checkForUpdateAsync();
         if (update.isAvailable) {
           await Updates.fetchUpdateAsync();
-          Alert.alert(
-            'Update Available',
-            'A new version has been downloaded. Restart now?',
-            [
-              { text: 'Later', style: 'cancel' },
-              { text: 'Restart', onPress: () => Updates.reloadAsync() },
-            ]
-          );
+          Alert.alert('Update Available', 'A new version has been downloaded. Restart now?', [
+            { text: 'Later', style: 'cancel' },
+            { text: 'Restart', onPress: () => Updates.reloadAsync() },
+          ]);
         }
       } catch {
         // Silent fail — OTA check is best-effort

@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert,
-  ActivityIndicator, Image,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -25,7 +32,9 @@ export default function EditRecipeScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState('');
-  const [ingredients, setIngredients] = useState<Ingredient[]>([{ id: Crypto.randomUUID(), name: '', description: '' }]);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([
+    { id: Crypto.randomUUID(), name: '', description: '' },
+  ]);
   const [steps, setSteps] = useState<Step[]>([{ id: Crypto.randomUUID(), instruction: '' }]);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
@@ -50,7 +59,9 @@ export default function EditRecipeScreen() {
       name: i.name,
       description: i.description ?? '',
     }));
-    setIngredients(ings.length > 0 ? ings : [{ id: Crypto.randomUUID(), name: '', description: '' }]);
+    setIngredients(
+      ings.length > 0 ? ings : [{ id: Crypto.randomUUID(), name: '', description: '' }],
+    );
 
     const stps = (stepsRes.data ?? []).map((s) => ({
       id: Crypto.randomUUID(),
@@ -87,9 +98,9 @@ export default function EditRecipeScreen() {
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('recipe-photos')
-        .getPublicUrl(fileName);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('recipe-photos').getPublicUrl(fileName);
 
       setPhotoUrl(publicUrl);
     } catch (e: any) {
@@ -131,19 +142,28 @@ export default function EditRecipeScreen() {
   };
 
   // --- Ingredient/step helpers ---
-  const addIngredient = () => setIngredients([...ingredients, { id: Crypto.randomUUID(), name: '', description: '' }]);
+  const addIngredient = () =>
+    setIngredients([...ingredients, { id: Crypto.randomUUID(), name: '', description: '' }]);
   const updateIngredient = (i: number, field: 'name' | 'description', value: string) => {
-    const u = [...ingredients]; u[i][field] = value; setIngredients(u);
+    const u = [...ingredients];
+    u[i][field] = value;
+    setIngredients(u);
   };
-  const removeIngredient = (id: string) => setIngredients(ingredients.filter((ing) => ing.id !== id));
+  const removeIngredient = (id: string) =>
+    setIngredients(ingredients.filter((ing) => ing.id !== id));
   const addStep = () => setSteps([...steps, { id: Crypto.randomUUID(), instruction: '' }]);
   const updateStep = (i: number, v: string) => {
-    const u = [...steps]; u[i].instruction = v; setSteps(u);
+    const u = [...steps];
+    u[i].instruction = v;
+    setSteps(u);
   };
   const removeStep = (id: string) => setSteps(steps.filter((s) => s.id !== id));
 
   const handleSave = async () => {
-    if (!title.trim()) { Alert.alert('Error', 'Please enter a title'); return; }
+    if (!title.trim()) {
+      Alert.alert('Error', 'Please enter a title');
+      return;
+    }
     if (!user) return;
 
     const validIngs = ingredients.filter((i) => i.name.trim());
@@ -181,7 +201,7 @@ export default function EditRecipeScreen() {
           name: ing.name.trim(),
           description: ing.description.trim(),
           position: i,
-        }))
+        })),
       );
       if (ingError) {
         Alert.alert('Warning', 'Recipe saved but some ingredients may be missing.');
@@ -209,7 +229,7 @@ export default function EditRecipeScreen() {
           recipe_id: id!,
           step_number: i + 1,
           instruction: s.instruction.trim(),
-        }))
+        })),
       );
       if (stepError) {
         Alert.alert('Warning', 'Recipe saved but some steps may be missing.');
@@ -241,37 +261,106 @@ export default function EditRecipeScreen() {
           <View style={styles.photoSection}>
             <Image source={{ uri: photoUrl }} style={styles.photoPreview} />
             <View style={styles.photoActions}>
-              <TouchableOpacity onPress={handleChangePhoto} style={styles.photoActionBtn} accessibilityLabel="Change photo" accessibilityRole="button">
+              <TouchableOpacity
+                onPress={handleChangePhoto}
+                style={styles.photoActionBtn}
+                accessibilityLabel="Change photo"
+                accessibilityRole="button"
+              >
                 <Ionicons name="camera-outline" size={18} color={colors.primaryText} />
-                <Text style={[styles.photoActionText, { color: colors.primaryText }]}>Change Photo</Text>
+                <Text style={[styles.photoActionText, { color: colors.primaryText }]}>
+                  Change Photo
+                </Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleRemovePhoto} style={styles.photoActionBtn} accessibilityLabel="Remove photo" accessibilityRole="button">
+              <TouchableOpacity
+                onPress={handleRemovePhoto}
+                style={styles.photoActionBtn}
+                accessibilityLabel="Remove photo"
+                accessibilityRole="button"
+              >
                 <Ionicons name="trash-outline" size={18} color={colors.danger} />
                 <Text style={[styles.photoActionText, { color: colors.danger }]}>Remove Photo</Text>
               </TouchableOpacity>
             </View>
           </View>
         ) : (
-          <TouchableOpacity onPress={handleChangePhoto} style={[styles.addPhotoButton, { borderColor: colors.inputBorder }]} accessibilityLabel="Add photo" accessibilityRole="button">
+          <TouchableOpacity
+            onPress={handleChangePhoto}
+            style={[styles.addPhotoButton, { borderColor: colors.inputBorder }]}
+            accessibilityLabel="Add photo"
+            accessibilityRole="button"
+          >
             <Ionicons name="camera-outline" size={24} color={colors.primaryText} />
             <Text style={[styles.addPhotoText, { color: colors.primaryText }]}>Add Photo</Text>
           </TouchableOpacity>
         )}
 
         <Text style={[styles.label, { color: colors.text }]}>Title</Text>
-        <TextInput style={[styles.input, { borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]} placeholder="Recipe title" placeholderTextColor={colors.placeholder} value={title} onChangeText={setTitle} />
+        <TextInput
+          style={[
+            styles.input,
+            {
+              borderColor: colors.inputBorder,
+              color: colors.text,
+              backgroundColor: colors.inputBackground,
+            },
+          ]}
+          placeholder="Recipe title"
+          placeholderTextColor={colors.placeholder}
+          value={title}
+          onChangeText={setTitle}
+        />
 
         <Text style={[styles.label, { color: colors.text }]}>Ingredients</Text>
         {ingredients.map((ing, i) => (
           <View key={ing.id} style={styles.row}>
-            <TextInput style={[styles.input, { flex: 1, marginRight: 8, borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]} placeholder="Item" placeholderTextColor={colors.placeholder} value={ing.name} onChangeText={(v) => updateIngredient(i, 'name', v)} />
-            <TextInput style={[styles.input, { flex: 1, marginRight: 8, borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]} placeholder="Qty / notes" placeholderTextColor={colors.placeholder} value={ing.description} onChangeText={(v) => updateIngredient(i, 'description', v)} />
-            <TouchableOpacity onPress={() => removeIngredient(ing.id)} accessibilityLabel="Remove ingredient" accessibilityRole="button">
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  flex: 1,
+                  marginRight: 8,
+                  borderColor: colors.inputBorder,
+                  color: colors.text,
+                  backgroundColor: colors.inputBackground,
+                },
+              ]}
+              placeholder="Item"
+              placeholderTextColor={colors.placeholder}
+              value={ing.name}
+              onChangeText={(v) => updateIngredient(i, 'name', v)}
+            />
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  flex: 1,
+                  marginRight: 8,
+                  borderColor: colors.inputBorder,
+                  color: colors.text,
+                  backgroundColor: colors.inputBackground,
+                },
+              ]}
+              placeholder="Qty / notes"
+              placeholderTextColor={colors.placeholder}
+              value={ing.description}
+              onChangeText={(v) => updateIngredient(i, 'description', v)}
+            />
+            <TouchableOpacity
+              onPress={() => removeIngredient(ing.id)}
+              accessibilityLabel="Remove ingredient"
+              accessibilityRole="button"
+            >
               <Ionicons name="close-circle" size={24} color={colors.danger} />
             </TouchableOpacity>
           </View>
         ))}
-        <TouchableOpacity onPress={addIngredient} style={styles.addRow} accessibilityLabel="Add ingredient" accessibilityRole="button">
+        <TouchableOpacity
+          onPress={addIngredient}
+          style={styles.addRow}
+          accessibilityLabel="Add ingredient"
+          accessibilityRole="button"
+        >
           <Ionicons name="add-circle-outline" size={20} color={colors.primaryText} />
           <Text style={[styles.addText, { color: colors.primaryText }]}>Add ingredient</Text>
         </TouchableOpacity>
@@ -280,19 +369,56 @@ export default function EditRecipeScreen() {
         {steps.map((step, i) => (
           <View key={step.id} style={styles.row}>
             <Text style={[styles.stepNumber, { color: colors.text }]}>{i + 1}.</Text>
-            <TextInput style={[styles.input, { flex: 1, marginRight: 8, borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]} placeholder="Instruction" placeholderTextColor={colors.placeholder} value={step.instruction} onChangeText={(v) => updateStep(i, v)} multiline />
-            <TouchableOpacity onPress={() => removeStep(step.id)} accessibilityLabel="Remove step" accessibilityRole="button">
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  flex: 1,
+                  marginRight: 8,
+                  borderColor: colors.inputBorder,
+                  color: colors.text,
+                  backgroundColor: colors.inputBackground,
+                },
+              ]}
+              placeholder="Instruction"
+              placeholderTextColor={colors.placeholder}
+              value={step.instruction}
+              onChangeText={(v) => updateStep(i, v)}
+              multiline
+            />
+            <TouchableOpacity
+              onPress={() => removeStep(step.id)}
+              accessibilityLabel="Remove step"
+              accessibilityRole="button"
+            >
               <Ionicons name="close-circle" size={24} color={colors.danger} />
             </TouchableOpacity>
           </View>
         ))}
-        <TouchableOpacity onPress={addStep} style={styles.addRow} accessibilityLabel="Add step" accessibilityRole="button">
+        <TouchableOpacity
+          onPress={addStep}
+          style={styles.addRow}
+          accessibilityLabel="Add step"
+          accessibilityRole="button"
+        >
           <Ionicons name="add-circle-outline" size={20} color={colors.primaryText} />
           <Text style={[styles.addText, { color: colors.primaryText }]}>Add step</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.saveButton, { backgroundColor: colors.primary }, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving} accessibilityLabel="Save changes" accessibilityRole="button">
-          <Text style={[styles.saveText, { color: colors.buttonText }]}>{saving ? 'Saving...' : 'Save Changes'}</Text>
+        <TouchableOpacity
+          style={[
+            styles.saveButton,
+            { backgroundColor: colors.primary },
+            saving && { opacity: 0.6 },
+          ]}
+          onPress={handleSave}
+          disabled={saving}
+          accessibilityLabel="Save changes"
+          accessibilityRole="button"
+        >
+          <Text style={[styles.saveText, { color: colors.buttonText }]}>
+            {saving ? 'Saving...' : 'Save Changes'}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -310,8 +436,12 @@ const styles = StyleSheet.create({
   photoActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, padding: 8 },
   photoActionText: { fontSize: 14, fontWeight: '500' },
   addPhotoButton: {
-    alignItems: 'center', paddingVertical: 32, borderWidth: 2,
-    borderStyle: 'dashed', borderRadius: 12, marginBottom: 8,
+    alignItems: 'center',
+    paddingVertical: 32,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    marginBottom: 8,
   },
   addPhotoText: { marginTop: 4, fontSize: 14 },
   label: { fontSize: 16, fontWeight: '600', marginTop: 16, marginBottom: 8 },
@@ -321,7 +451,10 @@ const styles = StyleSheet.create({
   addRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, marginBottom: 8 },
   addText: { marginLeft: 6 },
   saveButton: {
-    borderRadius: 8, padding: 16, alignItems: 'center', marginTop: 24,
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 24,
   },
   saveText: { fontSize: 16, fontWeight: '600' },
 });

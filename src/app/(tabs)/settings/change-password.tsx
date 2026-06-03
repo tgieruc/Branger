@@ -1,6 +1,13 @@
 import { useState, useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -74,7 +81,12 @@ export default function ChangePasswordScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={[styles.inputRow, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground }]}>
+      <View
+        style={[
+          styles.inputRow,
+          { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground },
+        ]}
+      >
         <TextInput
           style={[styles.inputInner, { color: colors.text }]}
           placeholder="Current Password"
@@ -88,11 +100,24 @@ export default function ChangePasswordScreen() {
           blurOnSubmit={false}
           accessibilityLabel="Current password"
         />
-        <TouchableOpacity onPress={() => setShowCurrent(!showCurrent)} style={styles.eyeButton} accessibilityLabel={showCurrent ? 'Hide current password' : 'Show current password'}>
-          <Ionicons name={showCurrent ? 'eye-off-outline' : 'eye-outline'} size={22} color={colors.textTertiary} />
+        <TouchableOpacity
+          onPress={() => setShowCurrent(!showCurrent)}
+          style={styles.eyeButton}
+          accessibilityLabel={showCurrent ? 'Hide current password' : 'Show current password'}
+        >
+          <Ionicons
+            name={showCurrent ? 'eye-off-outline' : 'eye-outline'}
+            size={22}
+            color={colors.textTertiary}
+          />
         </TouchableOpacity>
       </View>
-      <View style={[styles.inputRow, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground }]}>
+      <View
+        style={[
+          styles.inputRow,
+          { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground },
+        ]}
+      >
         <TextInput
           ref={newRef}
           style={[styles.inputInner, { color: colors.text }]}
@@ -107,11 +132,24 @@ export default function ChangePasswordScreen() {
           blurOnSubmit={false}
           accessibilityLabel="New password"
         />
-        <TouchableOpacity onPress={() => setShowNew(!showNew)} style={styles.eyeButton} accessibilityLabel={showNew ? 'Hide new password' : 'Show new password'}>
-          <Ionicons name={showNew ? 'eye-off-outline' : 'eye-outline'} size={22} color={colors.textTertiary} />
+        <TouchableOpacity
+          onPress={() => setShowNew(!showNew)}
+          style={styles.eyeButton}
+          accessibilityLabel={showNew ? 'Hide new password' : 'Show new password'}
+        >
+          <Ionicons
+            name={showNew ? 'eye-off-outline' : 'eye-outline'}
+            size={22}
+            color={colors.textTertiary}
+          />
         </TouchableOpacity>
       </View>
-      <View style={[styles.inputRow, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground }]}>
+      <View
+        style={[
+          styles.inputRow,
+          { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground },
+        ]}
+      >
         <TextInput
           ref={confirmRef}
           style={[styles.inputInner, { color: colors.text }]}
@@ -125,8 +163,16 @@ export default function ChangePasswordScreen() {
           onSubmitEditing={handleChangePassword}
           accessibilityLabel="Confirm new password"
         />
-        <TouchableOpacity onPress={() => setShowConfirm(!showConfirm)} style={styles.eyeButton} accessibilityLabel={showConfirm ? 'Hide confirm password' : 'Show confirm password'}>
-          <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={22} color={colors.textTertiary} />
+        <TouchableOpacity
+          onPress={() => setShowConfirm(!showConfirm)}
+          style={styles.eyeButton}
+          accessibilityLabel={showConfirm ? 'Hide confirm password' : 'Show confirm password'}
+        >
+          <Ionicons
+            name={showConfirm ? 'eye-off-outline' : 'eye-outline'}
+            size={22}
+            color={colors.textTertiary}
+          />
         </TouchableOpacity>
       </View>
       <TouchableOpacity
@@ -136,14 +182,23 @@ export default function ChangePasswordScreen() {
         accessibilityLabel="Change password"
         accessibilityRole="button"
       >
-        <Text style={[styles.buttonText, { color: colors.buttonText }]}>{loading ? 'Changing...' : 'Change Password'}</Text>
+        <Text style={[styles.buttonText, { color: colors.buttonText }]}>
+          {loading ? 'Changing...' : 'Change Password'}
+        </Text>
       </TouchableOpacity>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24, maxWidth: 600, width: '100%', alignSelf: 'center' },
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+    maxWidth: 600,
+    width: '100%',
+    alignSelf: 'center',
+  },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -160,7 +215,9 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   button: {
-    borderRadius: 8, padding: 16, alignItems: 'center',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
   },
   buttonText: { fontSize: 16, fontWeight: '600' },
 });

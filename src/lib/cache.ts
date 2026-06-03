@@ -42,7 +42,7 @@ export async function clearAllCache(): Promise<void> {
   try {
     const keys = await AsyncStorage.getAllKeys();
     const cacheKeys = keys.filter(
-      (k) => k === RECIPES_LIST_KEY || k.startsWith(RECIPE_DETAIL_PREFIX)
+      (k) => k === RECIPES_LIST_KEY || k.startsWith(RECIPE_DETAIL_PREFIX),
     );
     if (cacheKeys.length > 0) {
       await AsyncStorage.multiRemove(cacheKeys);
