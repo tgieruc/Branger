@@ -31,11 +31,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     }, 3000);
   }, []);
 
-  return (
-    <ToastContext.Provider value={{ toasts, show }}>
-      {children}
-    </ToastContext.Provider>
-  );
+  return <ToastContext.Provider value={{ toasts, show }}>{children}</ToastContext.Provider>;
 }
 
 export function useToast() {

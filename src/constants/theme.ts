@@ -5,8 +5,8 @@
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#5C7A00';  // darkened lime for contrast on white
-const tintColorDark = '#D4ED6E';   // lime
+const tintColorLight = '#5C7A00'; // darkened lime for contrast on white
+const tintColorDark = '#D4ED6E'; // lime
 
 export const Colors = {
   light: {
@@ -19,8 +19,8 @@ export const Colors = {
     icon: '#687076',
     tabIconDefault: '#687076',
     tabIconSelected: tintColorLight,
-    primary: '#D4ED6E',       // lime — button backgrounds
-    primaryText: '#5C7A00',   // dark lime — text links, inline actions
+    primary: '#D4ED6E', // lime — button backgrounds
+    primaryText: '#5C7A00', // dark lime — text links, inline actions
     danger: '#ff3b30',
     success: '#34c759',
     aiPurple: '#5856D6',
@@ -41,8 +41,8 @@ export const Colors = {
     shadow: '#000',
     cancelButton: '#f0f0f0',
     cancelText: '#333',
-    buttonText: '#1A1A2E',    // navy on lime buttons
-    addToListBg: '#f4f8e4',   // lime tint
+    buttonText: '#1A1A2E', // navy on lime buttons
+    addToListBg: '#f4f8e4', // lime tint
     addToListBorder: '#d4e8a0',
     checkedText: '#bbb',
     chevron: '#ccc',
@@ -53,36 +53,36 @@ export const Colors = {
     text: '#ECEDEE',
     textSecondary: '#a1a1a6',
     textTertiary: '#8e8e93',
-    background: '#0F1117',          // void
+    background: '#0F1117', // void
     backgroundSecondary: '#1A1A2E', // navy deep
     tint: tintColorDark,
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
-    primary: '#D4ED6E',             // lime
-    primaryText: '#D4ED6E',         // lime on dark = good contrast
+    primary: '#D4ED6E', // lime
+    primaryText: '#D4ED6E', // lime on dark = good contrast
     danger: '#ff453a',
     success: '#30d158',
     aiPurple: '#5E5CE6',
-    border: '#2a2a4a',              // navy-tinted
+    border: '#2a2a4a', // navy-tinted
     borderLight: '#1e1e3a',
-    card: '#1A1A2E',                // navy deep
+    card: '#1A1A2E', // navy deep
     inputBorder: '#2a2a4a',
-    inputBackground: '#16213E',     // navy mid
+    inputBackground: '#16213E', // navy mid
     placeholder: '#636366',
     modalOverlay: 'rgba(0,0,0,0.7)',
     modalBackground: '#1A1A2E',
     offlineBannerBg: '#332d00',
     offlineBannerText: '#ffd60a',
-    tabBarBackground: '#0F1117',    // void
+    tabBarBackground: '#0F1117', // void
     tabBarBorder: '#2a2a4a',
-    headerBackground: '#0F1117',    // void
+    headerBackground: '#0F1117', // void
     headerText: '#ECEDEE',
     shadow: '#000',
-    cancelButton: '#16213E',        // navy mid
+    cancelButton: '#16213E', // navy mid
     cancelText: '#ECEDEE',
-    buttonText: '#1A1A2E',          // navy on lime
-    addToListBg: '#1a2a1a',         // lime-tinted dark
+    buttonText: '#1A1A2E', // navy on lime
+    addToListBg: '#1a2a1a', // lime-tinted dark
     addToListBorder: '#2a3a1a',
     checkedText: '#636366',
     chevron: '#3a3a5a',

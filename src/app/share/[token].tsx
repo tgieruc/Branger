@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, ActivityIndicator,
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
@@ -68,7 +74,7 @@ export default function SharedRecipeScreen() {
           name: ing.name,
           description: ing.description,
           position: i,
-        }))
+        })),
       );
       if (ingError) {
         Alert.alert('Warning', 'Recipe saved but some ingredients may be missing.');
@@ -81,7 +87,7 @@ export default function SharedRecipeScreen() {
           recipe_id: newRecipe.id,
           step_number: i + 1,
           instruction: step.instruction,
-        }))
+        })),
       );
       if (stepError) {
         Alert.alert('Warning', 'Recipe saved but some steps may be missing.');
@@ -94,7 +100,11 @@ export default function SharedRecipeScreen() {
   };
 
   if (loading) {
-    return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator size="large" /></View>;
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
   }
 
   if (!recipe) {
@@ -112,16 +122,27 @@ export default function SharedRecipeScreen() {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.content}
+    >
       <Text style={[styles.title, { color: colors.text }]}>{recipe.title}</Text>
 
       {user ? (
-        <TouchableOpacity style={[styles.saveButton, { backgroundColor: colors.success }]} onPress={handleSaveCopy}>
+        <TouchableOpacity
+          style={[styles.saveButton, { backgroundColor: colors.success }]}
+          onPress={handleSaveCopy}
+        >
           <Text style={[styles.saveText, { color: colors.buttonText }]}>Save to My Recipes</Text>
         </TouchableOpacity>
       ) : (
-        <TouchableOpacity style={[styles.signInButton, { backgroundColor: colors.primary }]} onPress={() => router.push('/login')}>
-          <Text style={[styles.signInText, { color: colors.buttonText }]}>Sign in to save this recipe</Text>
+        <TouchableOpacity
+          style={[styles.signInButton, { backgroundColor: colors.primary }]}
+          onPress={() => router.push('/login')}
+        >
+          <Text style={[styles.signInText, { color: colors.buttonText }]}>
+            Sign in to save this recipe
+          </Text>
         </TouchableOpacity>
       )}
 
@@ -129,7 +150,9 @@ export default function SharedRecipeScreen() {
       {recipe.ingredients.map((ing) => (
         <View key={ing.id} style={styles.ingredientRow}>
           <Text style={[styles.ingredientName, { color: colors.text }]}>{ing.name}</Text>
-          <Text style={[styles.ingredientDesc, { color: colors.textSecondary }]}>{ing.description}</Text>
+          <Text style={[styles.ingredientDesc, { color: colors.textSecondary }]}>
+            {ing.description}
+          </Text>
         </View>
       ))}
 
@@ -150,11 +173,17 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 16 },
   saveButton: {
-    borderRadius: 8, padding: 14, alignItems: 'center', marginBottom: 24,
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    marginBottom: 24,
   },
   saveText: { fontSize: 16, fontWeight: '600' },
   signInButton: {
-    borderRadius: 8, padding: 14, alignItems: 'center', marginBottom: 24,
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    marginBottom: 24,
   },
   signInText: { fontSize: 16, fontWeight: '600' },
   section: { fontSize: 18, fontWeight: '600', marginTop: 16, marginBottom: 8 },

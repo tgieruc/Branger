@@ -37,8 +37,10 @@ jest.mock('expo-router', () => ({
   useFocusEffect: (cb: () => void) => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { useEffect } = require('react');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => { cb(); }, []);
+
+    useEffect(() => {
+      cb();
+    }, []);
   },
 }));
 jest.mock('@expo/vector-icons', () => ({
@@ -123,10 +125,13 @@ describe('RecipesScreen', () => {
     render(<RecipesScreen />);
 
     await waitFor(() => {
-      expect(rpcMock).toHaveBeenCalledWith('search_recipes', expect.objectContaining({
-        p_query: '',
-        p_limit: 20,
-      }));
+      expect(rpcMock).toHaveBeenCalledWith(
+        'search_recipes',
+        expect.objectContaining({
+          p_query: '',
+          p_limit: 20,
+        }),
+      );
     });
   });
 });

@@ -30,7 +30,7 @@ export async function clearQueue(): Promise<void> {
 }
 
 export async function replayQueue(
-  supabaseClient: SupabaseClient
+  supabaseClient: SupabaseClient,
 ): Promise<{ success: number; failed: number }> {
   const queue = await getQueue();
   if (queue.length === 0) return { success: 0, failed: 0 };
@@ -44,9 +44,11 @@ export async function replayQueue(
     let error: unknown = null;
 
     // Skip toggle/delete for temp IDs — the add_item will create the real row
-    if ((entry.type === 'delete_item' || entry.type === 'toggle_item') &&
-        typeof entry.payload.itemId === 'string' &&
-        entry.payload.itemId.startsWith('temp_')) {
+    if (
+      (entry.type === 'delete_item' || entry.type === 'toggle_item') &&
+      typeof entry.payload.itemId === 'string' &&
+      entry.payload.itemId.startsWith('temp_')
+    ) {
       // Temp items don't exist server-side yet, skip silently
       continue;
     }

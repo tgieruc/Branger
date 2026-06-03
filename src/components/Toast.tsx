@@ -26,7 +26,11 @@ export function ToastContainer() {
           style={[
             styles.toast,
             { top: insets.top + 8 },
-            { backgroundColor: isDark ? TYPE_COLORS[toast.type].dark : TYPE_COLORS[toast.type].light },
+            {
+              backgroundColor: isDark
+                ? TYPE_COLORS[toast.type].dark
+                : TYPE_COLORS[toast.type].light,
+            },
           ]}
         >
           <Animated.Text style={styles.toastText}>{toast.text}</Animated.Text>

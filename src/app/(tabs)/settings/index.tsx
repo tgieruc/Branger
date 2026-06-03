@@ -42,7 +42,12 @@ export default function SettingsScreen() {
       >
         {/* Account Section */}
         <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>ACCOUNT</Text>
-        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
+        <View
+          style={[
+            styles.section,
+            { backgroundColor: colors.card, borderColor: colors.borderLight },
+          ]}
+        >
           <View style={styles.row}>
             <Text style={[styles.rowLabel, { color: colors.text }]}>Email</Text>
             <Text style={[styles.rowValue, { color: colors.textSecondary }]}>{user?.email}</Text>
@@ -54,15 +59,30 @@ export default function SettingsScreen() {
             accessibilityLabel="Change password"
             accessibilityRole="button"
           >
-            <Ionicons name="key-outline" size={20} color={colors.primaryText} style={styles.rowIcon} />
+            <Ionicons
+              name="key-outline"
+              size={20}
+              color={colors.primaryText}
+              style={styles.rowIcon}
+            />
             <Text style={[styles.rowLabel, { color: colors.text }]}>Change Password</Text>
-            <Ionicons name="chevron-forward" size={16} color={colors.chevron} style={{ marginLeft: 'auto' }} />
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={colors.chevron}
+              style={{ marginLeft: 'auto' }}
+            />
           </TouchableOpacity>
         </View>
 
         {/* Integrations Section */}
         <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>INTEGRATIONS</Text>
-        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
+        <View
+          style={[
+            styles.section,
+            { backgroundColor: colors.card, borderColor: colors.borderLight },
+          ]}
+        >
           <TouchableOpacity
             style={styles.row}
             onPress={() => router.push('/(tabs)/settings/api-tokens')}
@@ -72,15 +92,27 @@ export default function SettingsScreen() {
             <Ionicons name="key-outline" size={20} color={colors.primary} style={styles.rowIcon} />
             <View style={{ flex: 1 }}>
               <Text style={[styles.rowLabel, { color: colors.text }]}>API Tokens</Text>
-              <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 2 }}>Connect AI agents to your account</Text>
+              <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 2 }}>
+                Connect AI agents to your account
+              </Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color={colors.chevron} style={{ marginLeft: 'auto' }} />
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={colors.chevron}
+              style={{ marginLeft: 'auto' }}
+            />
           </TouchableOpacity>
         </View>
 
         {/* Appearance Section */}
         <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>APPEARANCE</Text>
-        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
+        <View
+          style={[
+            styles.section,
+            { backgroundColor: colors.card, borderColor: colors.borderLight },
+          ]}
+        >
           <View style={styles.segmentRow}>
             <Text style={[styles.rowLabel, { color: colors.text }]}>Theme</Text>
             <View
@@ -88,11 +120,7 @@ export default function SettingsScreen() {
               onLayout={(e) => setControlWidth(e.nativeEvent.layout.width)}
             >
               <Animated.View
-                style={[
-                  styles.segmentIndicator,
-                  { backgroundColor: colors.card },
-                  indicatorStyle,
-                ]}
+                style={[styles.segmentIndicator, { backgroundColor: colors.card }, indicatorStyle]}
               />
               {THEME_OPTIONS.map((option) => {
                 const selected = preference === option.value;
@@ -123,14 +151,24 @@ export default function SettingsScreen() {
 
         {/* Actions Section */}
         <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>ACTIONS</Text>
-        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
+        <View
+          style={[
+            styles.section,
+            { backgroundColor: colors.card, borderColor: colors.borderLight },
+          ]}
+        >
           <TouchableOpacity
             style={styles.row}
             onPress={() => setLogoutVisible(true)}
             accessibilityLabel="Sign out"
             accessibilityRole="button"
           >
-            <Ionicons name="log-out-outline" size={20} color={colors.danger} style={styles.rowIcon} />
+            <Ionicons
+              name="log-out-outline"
+              size={20}
+              color={colors.danger}
+              style={styles.rowIcon}
+            />
             <Text style={[styles.rowLabel, { color: colors.danger }]}>Sign Out</Text>
           </TouchableOpacity>
         </View>
@@ -142,7 +180,10 @@ export default function SettingsScreen() {
         message="Are you sure you want to sign out?"
         confirmLabel="Sign Out"
         destructive={false}
-        onConfirm={() => { setLogoutVisible(false); signOut(); }}
+        onConfirm={() => {
+          setLogoutVisible(false);
+          signOut();
+        }}
         onCancel={() => setLogoutVisible(false)}
       />
     </>

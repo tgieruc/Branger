@@ -107,9 +107,10 @@ export default function RecipeDetailScreen() {
     const shareUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/share-redirect/recipe/${token}`;
     try {
       await Share.share({
-        message: Platform.OS === 'ios'
-          ? `Check out this recipe: ${recipe.title}`
-          : `Check out this recipe: ${recipe.title}\n${shareUrl}`,
+        message:
+          Platform.OS === 'ios'
+            ? `Check out this recipe: ${recipe.title}`
+            : `Check out this recipe: ${recipe.title}\n${shareUrl}`,
         url: Platform.OS === 'ios' ? shareUrl : undefined,
       });
     } catch {
@@ -203,34 +204,64 @@ export default function RecipeDetailScreen() {
           title: recipe.title,
           headerRight: () => (
             <View style={styles.headerRight}>
-              <TouchableOpacity onPress={handleShare} style={styles.headerBtn} accessibilityLabel="Share recipe" accessibilityRole="button">
+              <TouchableOpacity
+                onPress={handleShare}
+                style={styles.headerBtn}
+                accessibilityLabel="Share recipe"
+                accessibilityRole="button"
+              >
                 <Ionicons name="share-outline" size={22} color={colors.primaryText} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => router.push(`/(tabs)/recipes/edit/${id}`)} style={styles.headerBtn} accessibilityLabel="Edit recipe" accessibilityRole="button">
+              <TouchableOpacity
+                onPress={() => router.push(`/(tabs)/recipes/edit/${id}`)}
+                style={styles.headerBtn}
+                accessibilityLabel="Edit recipe"
+                accessibilityRole="button"
+              >
                 <Ionicons name="create-outline" size={22} color={colors.primaryText} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleDelete} style={styles.headerBtn} accessibilityLabel="Delete recipe" accessibilityRole="button">
+              <TouchableOpacity
+                onPress={handleDelete}
+                style={styles.headerBtn}
+                accessibilityLabel="Delete recipe"
+                accessibilityRole="button"
+              >
                 <Ionicons name="trash-outline" size={22} color={colors.danger} />
               </TouchableOpacity>
             </View>
           ),
         }}
       />
-      <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
-        {recipe.photo_url && (
-          <Image source={{ uri: recipe.photo_url }} style={styles.image} />
-        )}
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={styles.content}
+      >
+        {recipe.photo_url && <Image source={{ uri: recipe.photo_url }} style={styles.image} />}
 
-        <TouchableOpacity onPress={handleAddToList} style={[styles.addToListButton, { backgroundColor: colors.addToListBg, borderColor: colors.addToListBorder }, addingToList && { opacity: 0.6 }]} disabled={addingToList} accessibilityLabel="Add ingredients to shopping list" accessibilityRole="button">
+        <TouchableOpacity
+          onPress={handleAddToList}
+          style={[
+            styles.addToListButton,
+            { backgroundColor: colors.addToListBg, borderColor: colors.addToListBorder },
+            addingToList && { opacity: 0.6 },
+          ]}
+          disabled={addingToList}
+          accessibilityLabel="Add ingredients to shopping list"
+          accessibilityRole="button"
+        >
           <Ionicons name="cart-outline" size={20} color={colors.primaryText} />
-          <Text style={[styles.addToListText, { color: colors.primaryText }]}>Add to Shopping List</Text>
+          <Text style={[styles.addToListText, { color: colors.primaryText }]}>
+            Add to Shopping List
+          </Text>
         </TouchableOpacity>
 
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Ingredients</Text>
         {recipe.ingredients.map((ing) => (
           <View key={ing.id} style={styles.ingredientRow}>
             <Text style={[styles.ingredientName, { color: colors.text }]}>{ing.name}</Text>
-            <Text style={[styles.ingredientDesc, { color: colors.textSecondary }]}>{ing.description}</Text>
+            <Text style={[styles.ingredientDesc, { color: colors.textSecondary }]}>
+              {ing.description}
+            </Text>
           </View>
         ))}
 
@@ -249,8 +280,14 @@ export default function RecipeDetailScreen() {
         animationType="fade"
         onRequestClose={() => setListPickerVisible(false)}
       >
-        <Pressable style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]} onPress={() => setListPickerVisible(false)}>
-          <Pressable style={[styles.modalContent, { backgroundColor: colors.modalBackground }]} onPress={(e) => e.stopPropagation()}>
+        <Pressable
+          style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]}
+          onPress={() => setListPickerVisible(false)}
+        >
+          <Pressable
+            style={[styles.modalContent, { backgroundColor: colors.modalBackground }]}
+            onPress={(e) => e.stopPropagation()}
+          >
             <Text style={[styles.modalTitle, { color: colors.text }]}>Add to List</Text>
             {availableLists.length === 0 && !showNewListInput && (
               <Text style={[styles.modalEmptyText, { color: colors.textTertiary }]}>
@@ -270,7 +307,14 @@ export default function RecipeDetailScreen() {
             {showNewListInput ? (
               <View style={[styles.newListRow, { borderBottomColor: colors.borderLight }]}>
                 <TextInput
-                  style={[styles.newListInput, { borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]}
+                  style={[
+                    styles.newListInput,
+                    {
+                      borderColor: colors.inputBorder,
+                      color: colors.text,
+                      backgroundColor: colors.inputBackground,
+                    },
+                  ]}
                   placeholder="List name"
                   placeholderTextColor={colors.placeholder}
                   value={newListName}
@@ -288,7 +332,9 @@ export default function RecipeDetailScreen() {
                 onPress={() => setShowNewListInput(true)}
               >
                 <Ionicons name="add-circle-outline" size={20} color={colors.success} />
-                <Text style={[styles.modalOptionText, { color: colors.success }]}>Create New List</Text>
+                <Text style={[styles.modalOptionText, { color: colors.success }]}>
+                  Create New List
+                </Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
@@ -320,9 +366,15 @@ const styles = StyleSheet.create({
   headerBtn: { padding: 4 },
   image: { width: '100%', height: 200 },
   addToListButton: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    marginHorizontal: 16, marginVertical: 12, paddingVertical: 12, paddingHorizontal: 16,
-    borderRadius: 10, borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginVertical: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: 1,
   },
   addToListText: { fontSize: 15, fontWeight: '500' },
   sectionTitle: {
@@ -343,25 +395,39 @@ const styles = StyleSheet.create({
   stepNumber: { fontSize: 15, fontWeight: '600', marginRight: 8, width: 24 },
   stepText: { fontSize: 15, flex: 1 },
   modalOverlay: {
-    flex: 1, justifyContent: 'center',
-    alignItems: 'center', padding: 32,
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
   },
   modalContent: {
-    borderRadius: 16, padding: 20, width: '100%',
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
     maxWidth: 360,
   },
   modalTitle: { fontSize: 18, fontWeight: '600', marginBottom: 16, textAlign: 'center' },
   modalOption: {
-    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   modalOptionText: { fontSize: 16 },
   newListRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   newListInput: {
-    flex: 1, borderWidth: 1, borderRadius: 8, padding: 10, fontSize: 15,
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 15,
   },
   modalEmptyText: { fontSize: 15, textAlign: 'center', paddingVertical: 12 },
   modalCancel: { paddingVertical: 14, marginTop: 4 },

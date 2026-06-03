@@ -5,10 +5,12 @@ const FUNCTIONS_URL = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1`;
 
 async function callEdgeFunction(
   functionName: string,
-  body: Record<string, string | string[]>
+  body: Record<string, string | string[]>,
 ): Promise<AIRecipeResult> {
   // Get current session, refresh only if token expires within 60s
-  let { data: { session } } = await supabase.auth.getSession();
+  let {
+    data: { session },
+  } = await supabase.auth.getSession();
 
   if (session) {
     const expiresAt = session.expires_at ?? 0;
@@ -27,8 +29,8 @@ async function callEdgeFunction(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
-      'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
+      Authorization: `Bearer ${session.access_token}`,
+      apikey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
     },
     body: JSON.stringify(body),
   });
@@ -38,7 +40,7 @@ async function callEdgeFunction(
     throw new Error(errorData?.error || `AI parsing failed (${response.status})`);
   }
 
-  return await response.json() as AIRecipeResult;
+  return (await response.json()) as AIRecipeResult;
 }
 
 export async function parseRecipeFromText(text: string): Promise<AIRecipeResult> {

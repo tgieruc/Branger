@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import {
-  Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Link } from 'expo-router';
 import { supabase } from '@/lib/supabase';
@@ -18,9 +24,10 @@ export default function ForgotPasswordScreen() {
       return;
     }
     setLoading(true);
-    const redirectTo = Platform.OS === 'web'
-      ? `${window.location.origin}/reset-password`
-      : `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/auth-callback`;
+    const redirectTo =
+      Platform.OS === 'web'
+        ? `${window.location.origin}/reset-password`
+        : `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/auth-callback`;
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo,
     });
@@ -42,7 +49,11 @@ export default function ForgotPasswordScreen() {
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           Check your email for a password reset link.
         </Text>
-        <Link href="/login" style={[styles.link, { color: colors.primaryText }]} accessibilityLabel="Back to Sign In">
+        <Link
+          href="/login"
+          style={[styles.link, { color: colors.primaryText }]}
+          accessibilityLabel="Back to Sign In"
+        >
           Back to Sign In
         </Link>
       </KeyboardAvoidingView>
@@ -59,7 +70,14 @@ export default function ForgotPasswordScreen() {
         Enter your email address and we&apos;ll send you a link to reset your password.
       </Text>
       <TextInput
-        style={[styles.input, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground, color: colors.text }]}
+        style={[
+          styles.input,
+          {
+            borderColor: colors.inputBorder,
+            backgroundColor: colors.inputBackground,
+            color: colors.text,
+          },
+        ]}
         placeholder="Email"
         placeholderTextColor={colors.placeholder}
         value={email}
@@ -77,7 +95,11 @@ export default function ForgotPasswordScreen() {
       >
         <Text style={styles.buttonText}>{loading ? 'Sending...' : 'Send Reset Link'}</Text>
       </TouchableOpacity>
-      <Link href="/login" style={[styles.link, { color: colors.primaryText }]} accessibilityLabel="Back to Sign In">
+      <Link
+        href="/login"
+        style={[styles.link, { color: colors.primaryText }]}
+        accessibilityLabel="Back to Sign In"
+      >
         Back to Sign In
       </Link>
     </KeyboardAvoidingView>
@@ -85,15 +107,27 @@ export default function ForgotPasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24, maxWidth: 600, width: '100%', alignSelf: 'center' },
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+    maxWidth: 600,
+    width: '100%',
+    alignSelf: 'center',
+  },
   title: { fontSize: 32, fontWeight: 'bold', textAlign: 'center', marginBottom: 16 },
   subtitle: { fontSize: 16, textAlign: 'center', marginBottom: 32 },
   input: {
-    borderWidth: 1, borderRadius: 8,
-    padding: 12, marginBottom: 16, fontSize: 16,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    fontSize: 16,
   },
   button: {
-    borderRadius: 8, padding: 16, alignItems: 'center',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
   },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   link: { marginTop: 16, textAlign: 'center' },

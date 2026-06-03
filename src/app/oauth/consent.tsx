@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Alert,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  ScrollView,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,8 +48,9 @@ export default function OAuthConsentScreen() {
 
     (async () => {
       try {
-        const { data, error } = await (supabase.auth as any).oauth
-          .getAuthorizationDetails(authorization_id);
+        const { data, error } = await (supabase.auth as any).oauth.getAuthorizationDetails(
+          authorization_id,
+        );
         if (error) {
           Alert.alert('Error', 'Could not load authorization details. The link may have expired.');
           setLoadingDetails(false);
@@ -62,8 +69,9 @@ export default function OAuthConsentScreen() {
     if (!authorization_id) return;
     setSubmitting(true);
     try {
-      const { data, error } = await (supabase.auth as any).oauth
-        .approveAuthorization(authorization_id);
+      const { data, error } = await (supabase.auth as any).oauth.approveAuthorization(
+        authorization_id,
+      );
       if (error) {
         Alert.alert('Error', 'Failed to approve authorization.');
         setSubmitting(false);
@@ -83,8 +91,9 @@ export default function OAuthConsentScreen() {
     if (!authorization_id) return;
     setSubmitting(true);
     try {
-      const { data, error } = await (supabase.auth as any).oauth
-        .denyAuthorization(authorization_id);
+      const { data, error } = await (supabase.auth as any).oauth.denyAuthorization(
+        authorization_id,
+      );
       if (error) {
         Alert.alert('Error', 'Failed to deny authorization.');
         setSubmitting(false);
@@ -135,16 +144,16 @@ export default function OAuthConsentScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
     >
-      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.inputBorder }]}>
+      <View
+        style={[styles.card, { backgroundColor: colors.card, borderColor: colors.inputBorder }]}
+      >
         <View style={styles.iconRow}>
           <Ionicons name="shield-checkmark-outline" size={40} color={colors.primary} />
         </View>
 
         <Text style={[styles.title, { color: colors.text }]}>Authorization Request</Text>
 
-        <Text style={[styles.clientName, { color: colors.text }]}>
-          {details.client_name}
-        </Text>
+        <Text style={[styles.clientName, { color: colors.text }]}>{details.client_name}</Text>
 
         <Text style={[styles.description, { color: colors.textSecondary }]}>
           is requesting access to your Branger account.
@@ -155,7 +164,12 @@ export default function OAuthConsentScreen() {
             <Text style={[styles.scopesLabel, { color: colors.text }]}>Requested permissions:</Text>
             {scopes.map((scope: string) => (
               <View key={scope} style={styles.scopeRow}>
-                <Ionicons name="checkmark-circle-outline" size={18} color={colors.primary} style={styles.scopeIcon} />
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={18}
+                  color={colors.primary}
+                  style={styles.scopeIcon}
+                />
                 <Text style={[styles.scopeText, { color: colors.textSecondary }]}>{scope}</Text>
               </View>
             ))}
@@ -164,7 +178,11 @@ export default function OAuthConsentScreen() {
       </View>
 
       <TouchableOpacity
-        style={[styles.approveButton, { backgroundColor: colors.primary }, submitting && styles.disabled]}
+        style={[
+          styles.approveButton,
+          { backgroundColor: colors.primary },
+          submitting && styles.disabled,
+        ]}
         onPress={handleApprove}
         disabled={submitting}
         accessibilityLabel="Approve authorization"
@@ -197,7 +215,14 @@ export default function OAuthConsentScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 24, paddingBottom: 48, maxWidth: 600, width: '100%', alignSelf: 'center' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', maxWidth: 600, width: '100%', alignSelf: 'center' },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    maxWidth: 600,
+    width: '100%',
+    alignSelf: 'center',
+  },
   card: {
     borderWidth: 1,
     borderRadius: 12,
@@ -214,15 +239,28 @@ const styles = StyleSheet.create({
   scopeIcon: { marginRight: 8 },
   scopeText: { fontSize: 14, flex: 1 },
   approveButton: {
-    borderRadius: 8, padding: 16, alignItems: 'center', marginBottom: 12,
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 12,
   },
   approveText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   denyButton: {
-    borderRadius: 8, padding: 16, alignItems: 'center', borderWidth: 1.5, marginBottom: 24,
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    marginBottom: 24,
   },
   denyText: { fontSize: 16, fontWeight: '600' },
   disabled: { opacity: 0.6 },
-  errorTitle: { fontSize: 20, fontWeight: '600', marginTop: 16, marginBottom: 8, textAlign: 'center' },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
   errorSubtitle: { fontSize: 15, textAlign: 'center', paddingHorizontal: 24 },
   footer: { fontSize: 13, textAlign: 'center' },
 });

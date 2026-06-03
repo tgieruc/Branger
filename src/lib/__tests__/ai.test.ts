@@ -1,4 +1,9 @@
-import { parseRecipeFromText, parseRecipeFromUrl, parseRecipeFromPhoto, parseRecipeFromPhotos } from '@/lib/ai';
+import {
+  parseRecipeFromText,
+  parseRecipeFromUrl,
+  parseRecipeFromPhoto,
+  parseRecipeFromPhotos,
+} from '@/lib/ai';
 import { supabase } from '@/lib/supabase';
 
 jest.mock('@/lib/supabase');

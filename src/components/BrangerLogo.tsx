@@ -10,7 +10,7 @@ type Props = {
 export function BrangerLogo({ size = 48, showTagline = false }: Props) {
   const colors = useColors();
   const [fontsLoaded] = useFonts({
-    'DMSerifDisplay': require('../../assets/fonts/DMSerifDisplay-Regular.ttf'),
+    DMSerifDisplay: require('../../assets/fonts/DMSerifDisplay-Regular.ttf'),
   });
 
   if (!fontsLoaded) return null;

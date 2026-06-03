@@ -1,6 +1,13 @@
 import { useState, useCallback } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, TextInput, ActivityIndicator,
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  TextInput,
+  ActivityIndicator,
   RefreshControl,
 } from 'react-native';
 import { Link, useFocusEffect } from 'expo-router';
@@ -35,7 +42,10 @@ export default function ListsScreen() {
   const keyboardHeight = useKeyboardHeight();
 
   const fetchLists = useCallback(async () => {
-    if (!user) { setLoading(false); return; }
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     const { data: memberships } = await supabase
       .from('list_members')
@@ -93,9 +103,11 @@ export default function ListsScreen() {
     setRefreshing(false);
   };
 
-  useFocusEffect(useCallback(() => {
-    fetchLists();
-  }, [fetchLists]));
+  useFocusEffect(
+    useCallback(() => {
+      fetchLists();
+    }, [fetchLists]),
+  );
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
@@ -144,7 +156,9 @@ export default function ListsScreen() {
         renderItem={({ item }) => (
           <View style={styles.cardRow}>
             <Link href={`/(tabs)/lists/${item.id}`} asChild style={{ flex: 1 }}>
-              <TouchableOpacity style={StyleSheet.flatten([styles.card, { backgroundColor: colors.card }])}>
+              <TouchableOpacity
+                style={StyleSheet.flatten([styles.card, { backgroundColor: colors.card }])}
+              >
                 <View style={styles.cardInfo}>
                   <Text style={[styles.cardTitle, { color: colors.text }]}>{item.name}</Text>
                   <Text style={[styles.cardSub, { color: colors.textTertiary }]}>
@@ -167,9 +181,7 @@ export default function ListsScreen() {
         )}
         contentContainerStyle={styles.list}
         keyboardShouldPersistTaps="handled"
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <EmptyState
             illustration={<EmptyShoppingBag />}
@@ -182,12 +194,33 @@ export default function ListsScreen() {
       />
 
       {showCreate ? (
-        <View style={[styles.createRow, { marginBottom: keyboardHeight, backgroundColor: colors.background, borderTopColor: colors.borderLight }]}>
-          <TouchableOpacity onPress={() => { setShowCreate(false); setNewName(''); }}>
+        <View
+          style={[
+            styles.createRow,
+            {
+              marginBottom: keyboardHeight,
+              backgroundColor: colors.background,
+              borderTopColor: colors.borderLight,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={() => {
+              setShowCreate(false);
+              setNewName('');
+            }}
+          >
             <Ionicons name="close-circle" size={32} color={colors.placeholder} />
           </TouchableOpacity>
           <TextInput
-            style={[styles.createInput, { borderColor: colors.inputBorder, color: colors.text, backgroundColor: colors.inputBackground }]}
+            style={[
+              styles.createInput,
+              {
+                borderColor: colors.inputBorder,
+                color: colors.text,
+                backgroundColor: colors.inputBackground,
+              },
+            ]}
             placeholder="List name"
             placeholderTextColor={colors.placeholder}
             value={newName}
@@ -201,7 +234,10 @@ export default function ListsScreen() {
         </View>
       ) : (
         <TouchableOpacity
-          style={[styles.fab, { backgroundColor: colors.primary, bottom: Math.max(24, insets.bottom + 8) }]}
+          style={[
+            styles.fab,
+            { backgroundColor: colors.primary, bottom: Math.max(24, insets.bottom + 8) },
+          ]}
           onPress={() => setShowCreate(true)}
           accessibilityLabel="Create new list"
           accessibilityRole="button"
@@ -227,11 +263,17 @@ const styles = StyleSheet.create({
   list: { paddingVertical: 8, paddingBottom: 80 },
   empty: { textAlign: 'center', marginTop: 48 },
   cardRow: {
-    flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginVertical: 6,
   },
   card: {
-    flex: 1, flexDirection: 'row', alignItems: 'center',
-    padding: 16, borderRadius: 12,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
     ...shadow(1, 4, 0.1),
   },
   cardDelete: { padding: 12 },
@@ -239,16 +281,28 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 16, fontWeight: '600' },
   cardSub: { fontSize: 13, marginTop: 4 },
   createRow: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16,
-    paddingVertical: 12, borderTopWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
   },
   createInput: {
-    flex: 1, borderWidth: 1, borderRadius: 8,
-    padding: 10, fontSize: 15, marginHorizontal: 8,
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 15,
+    marginHorizontal: 8,
   },
   fab: {
-    position: 'absolute', bottom: 24, right: 24, width: 56, height: 56,
-    borderRadius: 28, justifyContent: 'center',
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
     alignItems: 'center',
     ...shadow(2, 4, 0.25),
   },

@@ -48,7 +48,7 @@ export default function ApiTokensScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchTokens();
-    }, [fetchTokens])
+    }, [fetchTokens]),
   );
 
   const handleCreate = async () => {
@@ -102,7 +102,12 @@ export default function ApiTokensScreen() {
       >
         {/* MCP Endpoint */}
         <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>MCP ENDPOINT</Text>
-        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
+        <View
+          style={[
+            styles.section,
+            { backgroundColor: colors.card, borderColor: colors.borderLight },
+          ]}
+        >
           <TouchableOpacity
             style={styles.row}
             onPress={() => copyToClipboard(MCP_ENDPOINT, 'endpoint')}
@@ -126,7 +131,12 @@ export default function ApiTokensScreen() {
 
         {/* Tokens List */}
         <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>TOKENS</Text>
-        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
+        <View
+          style={[
+            styles.section,
+            { backgroundColor: colors.card, borderColor: colors.borderLight },
+          ]}
+        >
           {loading ? (
             <View style={styles.row}>
               <Text style={{ color: colors.textSecondary }}>Loading...</Text>
@@ -181,7 +191,14 @@ export default function ApiTokensScreen() {
           <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Generate API Token</Text>
             <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.borderLight, backgroundColor: colors.backgroundSecondary }]}
+              style={[
+                styles.input,
+                {
+                  color: colors.text,
+                  borderColor: colors.borderLight,
+                  backgroundColor: colors.backgroundSecondary,
+                },
+              ]}
               placeholder="Token name (optional)"
               placeholderTextColor={colors.textSecondary}
               value={newTokenName}
@@ -191,7 +208,10 @@ export default function ApiTokensScreen() {
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalButton, { borderColor: colors.borderLight }]}
-                onPress={() => { setCreateModalVisible(false); setNewTokenName(''); }}
+                onPress={() => {
+                  setCreateModalVisible(false);
+                  setNewTokenName('');
+                }}
               >
                 <Text style={{ color: colors.text, fontSize: 16 }}>Cancel</Text>
               </TouchableOpacity>
@@ -215,7 +235,10 @@ export default function ApiTokensScreen() {
               Copy this token now. It will not be shown again.
             </Text>
             <TouchableOpacity
-              style={[styles.tokenDisplay, { backgroundColor: colors.backgroundSecondary, borderColor: colors.borderLight }]}
+              style={[
+                styles.tokenDisplay,
+                { backgroundColor: colors.backgroundSecondary, borderColor: colors.borderLight },
+              ]}
               onPress={() => newTokenValue && copyToClipboard(newTokenValue, 'token')}
               accessibilityLabel="Copy token"
               accessibilityRole="button"
@@ -230,10 +253,18 @@ export default function ApiTokensScreen() {
               />
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.modalButton, { backgroundColor: colors.primary, alignSelf: 'stretch' }]}
-              onPress={() => { setNewTokenValue(null); setCreateModalVisible(false); }}
+              style={[
+                styles.modalButton,
+                { backgroundColor: colors.primary, alignSelf: 'stretch' },
+              ]}
+              onPress={() => {
+                setNewTokenValue(null);
+                setCreateModalVisible(false);
+              }}
             >
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', textAlign: 'center' }}>Done</Text>
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', textAlign: 'center' }}>
+                Done
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -284,7 +315,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   separator: { height: StyleSheet.hairlineWidth, marginLeft: 16 },
-  endpointText: { fontSize: 13, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', flex: 1 },
+  endpointText: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    flex: 1,
+  },
   tokenRow: {
     flexDirection: 'row',
     alignItems: 'center',

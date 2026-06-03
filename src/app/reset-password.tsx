@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import {
-  Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
@@ -10,7 +16,11 @@ type ScreenState = 'loading' | 'error' | 'ready';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ access_token?: string; refresh_token?: string; code?: string }>();
+  const params = useLocalSearchParams<{
+    access_token?: string;
+    refresh_token?: string;
+    code?: string;
+  }>();
   const colors = useColors();
   const [state, setState] = useState<ScreenState>('loading');
   const [errorMessage, setErrorMessage] = useState('');
@@ -135,7 +145,14 @@ export default function ResetPasswordScreen() {
     >
       <Text style={[styles.title, { color: colors.text }]}>Set New Password</Text>
       <TextInput
-        style={[styles.input, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground, color: colors.text }]}
+        style={[
+          styles.input,
+          {
+            borderColor: colors.inputBorder,
+            backgroundColor: colors.inputBackground,
+            color: colors.text,
+          },
+        ]}
         placeholder="New Password"
         placeholderTextColor={colors.placeholder}
         value={password}
@@ -144,7 +161,14 @@ export default function ResetPasswordScreen() {
         accessibilityLabel="New password"
       />
       <TextInput
-        style={[styles.input, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground, color: colors.text }]}
+        style={[
+          styles.input,
+          {
+            borderColor: colors.inputBorder,
+            backgroundColor: colors.inputBackground,
+            color: colors.text,
+          },
+        ]}
         placeholder="Confirm New Password"
         placeholderTextColor={colors.placeholder}
         value={confirmPassword}
@@ -166,14 +190,26 @@ export default function ResetPasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24, maxWidth: 600, width: '100%', alignSelf: 'center' },
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+    maxWidth: 600,
+    width: '100%',
+    alignSelf: 'center',
+  },
   title: { fontSize: 32, fontWeight: 'bold', textAlign: 'center', marginBottom: 48 },
   input: {
-    borderWidth: 1, borderRadius: 8,
-    padding: 12, marginBottom: 16, fontSize: 16,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    fontSize: 16,
   },
   button: {
-    borderRadius: 8, padding: 16, alignItems: 'center',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
   },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   loadingText: { fontSize: 16, textAlign: 'center' },

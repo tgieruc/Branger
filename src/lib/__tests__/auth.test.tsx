@@ -52,9 +52,7 @@ describe('useAuth', () => {
   it('throws when used outside of AuthProvider', () => {
     const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    expect(() => render(<TestConsumer />)).toThrow(
-      'useAuth must be used within AuthProvider',
-    );
+    expect(() => render(<TestConsumer />)).toThrow('useAuth must be used within AuthProvider');
 
     consoleError.mockRestore();
   });
@@ -62,8 +60,10 @@ describe('useAuth', () => {
   it('signIn calls supabase.auth.signInWithPassword', async () => {
     function SignInTest() {
       const { signIn } = useAuth();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      React.useEffect(() => { signIn('test@example.com', 'password123'); }, []);
+
+      React.useEffect(() => {
+        signIn('test@example.com', 'password123');
+      }, []);
       return null;
     }
 
@@ -84,8 +84,10 @@ describe('useAuth', () => {
   it('signUp calls supabase.auth.signUp', async () => {
     function SignUpTest() {
       const { signUp } = useAuth();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      React.useEffect(() => { signUp('new@example.com', 'newpass123'); }, []);
+
+      React.useEffect(() => {
+        signUp('new@example.com', 'newpass123');
+      }, []);
       return null;
     }
 
@@ -106,8 +108,10 @@ describe('useAuth', () => {
   it('signOut calls supabase.auth.signOut', async () => {
     function SignOutTest() {
       const { signOut } = useAuth();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      React.useEffect(() => { signOut(); }, []);
+
+      React.useEffect(() => {
+        signOut();
+      }, []);
       return null;
     }
 

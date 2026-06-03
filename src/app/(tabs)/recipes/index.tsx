@@ -133,7 +133,12 @@ export default function RecipesScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
-      <View style={[styles.searchContainer, { backgroundColor: colors.searchBarBg, borderColor: colors.inputBorder }]}>
+      <View
+        style={[
+          styles.searchContainer,
+          { backgroundColor: colors.searchBarBg, borderColor: colors.inputBorder },
+        ]}
+      >
         <Ionicons name="search" size={20} color={colors.textTertiary} style={styles.searchIcon} />
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
@@ -154,9 +159,7 @@ export default function RecipesScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <RecipeCard recipe={item} />}
         contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         onEndReached={() => {
           if (!loadingMore && hasMore) {
             setLoadingMore(true);
@@ -183,7 +186,10 @@ export default function RecipesScreen() {
       />
       <Link href="/(tabs)/recipes/create" asChild>
         <TouchableOpacity
-          style={StyleSheet.flatten([styles.fab, { backgroundColor: colors.primary, bottom: Math.max(24, insets.bottom + 8) }])}
+          style={StyleSheet.flatten([
+            styles.fab,
+            { backgroundColor: colors.primary, bottom: Math.max(24, insets.bottom + 8) },
+          ])}
           accessibilityLabel="Create new recipe"
           accessibilityRole="button"
         >
