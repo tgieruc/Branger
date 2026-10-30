@@ -64,7 +64,7 @@
     "lint-staged": "^16.3.2",
     "prettier": "^3.8.1",
     "react-test-renderer": "19.1.0",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.5",
     "supabase": "^2.76.8",
     "typescript": "~5.9.2"
   },
