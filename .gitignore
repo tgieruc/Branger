@@ -1,0 +1,80 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+.env
+
+# typescript
+*.tsbuildinfo
+
+app-example
+
+# generated native folders
+/ios
+/android
+
+# worktrees
+.worktrees/
+
+# env files
+.env.testing
+
+# IDE
+.idea/
+
+# MCP config (contains project refs)
+.mcp.json
+
+# Supabase temp
+supabase/.temp/
+
+
+GEMINI.md
+
+# Private environment and deployment configuration
+.env.*
+!.env.example
+.envrc
+google-service-account.json
+credentials.json
+*.keystore
+*.apk
+*.aab
+AGENTS.md
+CLAUDE.md
+AGENTS.local.md
+CLAUDE.local.md
+docs/private/
+docs/plans/
+docs/REMOTE_ANDROID_DEVELOPMENT.md
+docs/PROJECT_REVIEW_BACKLOG.md
